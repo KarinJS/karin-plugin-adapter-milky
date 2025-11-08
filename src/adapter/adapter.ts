@@ -1,6 +1,16 @@
 import { AdapterBase, registerBot, unregisterBot, logger } from 'node-karin'
 import { MilkyWebSocket } from '../connection/websocket'
 import { createMessage } from './message'
+import {
+  handleFriendRequest,
+  handleGroupJoinRequest,
+  handleGroupInvitation,
+  handleGroupMemberIncrease,
+  handleGroupMemberDecrease,
+  handleGroupAdminChange,
+  handleMessageRecall,
+  handleBotOffline,
+} from './events'
 import type { Contact, SendElement, SendMsgResults } from 'node-karin'
 import type { MilkyType } from '../core/types'
 
@@ -31,7 +41,45 @@ export class AdapterMilky extends AdapterBase {
       createMessage(data, this)
     })
 
-    // TODO: 监听其他事件
+    // 监听好友请求事件
+    this._milky.on('friend_request', (data) => {
+      handleFriendRequest(data, this)
+    })
+
+    // 监听加群请求事件
+    this._milky.on('group_join_request', (data) => {
+      handleGroupJoinRequest(data, this)
+    })
+
+    // 监听群邀请事件
+    this._milky.on('group_invitation', (data) => {
+      handleGroupInvitation(data, this)
+    })
+
+    // 监听群成员增加事件
+    this._milky.on('group_member_increase', (data) => {
+      handleGroupMemberIncrease(data, this)
+    })
+
+    // 监听群成员减少事件
+    this._milky.on('group_member_decrease', (data) => {
+      handleGroupMemberDecrease(data, this)
+    })
+
+    // 监听群管理员变更事件
+    this._milky.on('group_admin_change', (data) => {
+      handleGroupAdminChange(data, this)
+    })
+
+    // 监听消息撤回事件
+    this._milky.on('message_recall', (data) => {
+      handleMessageRecall(data, this)
+    })
+
+    // 监听Bot离线事件
+    this._milky.on('bot_offline', (data) => {
+      handleBotOffline(data, this)
+    })
   }
 
   /**
@@ -359,6 +407,38 @@ export class AdapterMilky extends AdapterBase {
       user_id: userId,
       times,
     })
+  }
+
+  /**
+   * 处理好友请求
+   */
+  async handleFriendRequest (requestId: string, approve: boolean, remark?: string): Promise<void> {
+    if (approve) {
+      await this._milky.callApi('accept_friend_request', {
+        request_id: requestId,
+        remark,
+      })
+    } else {
+      await this._milky.callApi('reject_friend_request', {
+        request_id: requestId,
+      })
+    }
+  }
+
+  /**
+   * 处理加群请求
+   */
+  async handleGroupRequest (requestId: string, approve: boolean, reason?: string): Promise<void> {
+    if (approve) {
+      await this._milky.callApi('accept_group_join_request', {
+        request_id: requestId,
+      })
+    } else {
+      await this._milky.callApi('reject_group_join_request', {
+        request_id: requestId,
+        reason,
+      })
+    }
   }
 
   /**
