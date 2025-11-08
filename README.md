@@ -230,11 +230,97 @@ const adapter = await createMilkyHttp({
 
 适配器会接收并转换以下 Milky 事件到 Karin 事件系统：
 
-- ✅ `message_receive` - 消息接收
-- ⏳ `message_recall` - 消息撤回（待实现）
-- ⏳ `friend_request` - 好友请求（待实现）
-- ⏳ `group_*` - 群组事件（待实现）
-- ⏳ 其他事件（待实现）
+**消息事件**
+- ✅ `message_receive` - 消息接收（私聊/群聊）
+- ✅ `message_recall` - 消息撤回
+
+**好友事件**
+- ✅ `friend_request` - 好友请求
+- ✅ `friend_nudge` - 好友戳一戳
+- ✅ `friend_file_upload` - 好友文件上传
+
+**群组事件**
+- ✅ `group_join_request` - 加群请求
+- ✅ `group_invitation` - 群邀请
+- ✅ `group_member_increase` - 群成员增加
+- ✅ `group_member_decrease` - 群成员减少
+- ✅ `group_admin_change` - 群管理员变更
+- ✅ `group_name_change` - 群名称变更
+- ✅ `group_essence_message_change` - 群精华消息变更
+- ✅ `group_message_reaction` - 群消息表情回应
+
+**机器人事件**
+- ✅ `bot_offline` - Bot离线（自动触发重连）
+
+**连接事件**
+- ✅ `connected` - 连接成功
+- ✅ `disconnected` - 连接断开
+- ✅ `reconnecting` - 重连中
+- ✅ `error` - 错误事件
+
+---
+
+## 自定义路由 API
+
+插件提供 HTTP API 用于监控和管理适配器。
+
+### 路由设置
+
+```typescript
+import { milkyRouter } from 'karin-plugin-adapter-milky'
+
+// 在 Karin 应用中设置路由
+milkyRouter.setup(app)
+```
+
+### API 端点
+
+**获取所有适配器状态**
+```
+GET /api/milky/status
+```
+
+响应：
+```json
+{
+  "success": true,
+  "data": {
+    "123456": {
+      "selfId": "123456",
+      "nickname": "Bot",
+      "platform": "qq",
+      "standard": "other",
+      "communication": "webSocketClient",
+      "isConnected": true
+    }
+  }
+}
+```
+
+**获取单个适配器状态**
+```
+GET /api/milky/status/:selfId
+```
+
+**重连适配器**
+```
+POST /api/milky/reconnect/:selfId
+```
+
+### 编程方式使用路由
+
+```typescript
+import { milkyRouter } from 'karin-plugin-adapter-milky'
+
+// 获取所有适配器状态
+const allStatus = milkyRouter.getStatus()
+
+// 获取单个适配器状态
+const status = milkyRouter.getAdapterStatus('123456')
+
+// 重连适配器
+await milkyRouter.reconnect('123456')
+```
 
 ---
 
@@ -248,11 +334,14 @@ src/
 │   ├── adapter.ts    # AdapterMilky 主类
 │   ├── create.ts     # 适配器创建函数
 │   ├── message.ts    # 消息事件转换
+│   ├── events.ts     # 事件处理器
 │   └── index.ts
 ├── core/              # 核心基类
 ├── api/               # API 类型定义
 ├── event/             # 事件类型
 ├── connection/        # 连接层（HTTP/WebSocket）
+├── router/            # 自定义路由
+│   └── index.ts      # HTTP API 路由
 ├── utils/             # 工具函数
 │   ├── Root.ts       # 插件根信息
 │   ├── dir.ts        # 目录路径管理
