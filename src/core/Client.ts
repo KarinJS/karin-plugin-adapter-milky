@@ -1,10 +1,31 @@
 import EventEmitter from 'events'
 import axios, { AxiosInstance } from 'node-karin/axios'
-import { Event, GetImplInfoOutput, GetLoginInfoOutput } from '@saltify/milky-types'
+import {
+  Event,
+  FriendEntity,
+  GetCookiesOutput,
+  GetCSRFTokenOutput,
+  GetForwardedMessagesOutput,
+  GetFriendRequestsOutput,
+  GetGroupAnnouncementsOutput,
+  GetGroupEssenceMessagesOutput,
+  GetGroupNotificationsOutput,
+  GetHistoryMessagesOutput,
+  GetImplInfoOutput,
+  GetLoginInfoOutput,
+  GetMessageOutput,
+  GetResourceTempUrlOutput,
+  GetUserProfileOutput,
+  GroupEntity,
+  GroupMemberEntity,
+  OutgoingSegment,
+  SendGroupMessageOutput,
+  SendPrivateMessageOutput
+} from '@saltify/milky-types'
 import { BotCfg } from '@/config/types'
 
-interface Events {
-  offline: (data: Extract<Event, { event_type: 'bot_offline' }>) => void
+type EventMap = {
+  [K in Event['event_type']]: (data: Extract<Event, { event_type: K }>) => void
 }
 type ApiResponse<T = unknown> =
   | {
@@ -18,24 +39,24 @@ type ApiResponse<T = unknown> =
     message: string
   }
 
+/** 群聊与消息相关接口扩展 */
 export class Client extends EventEmitter {
   private axios: AxiosInstance
+
   constructor (cfg: BotCfg) {
     super()
     const url = new URL('api', cfg.url.endsWith('/') ? cfg.url : cfg.url + '/').toString()
     this.axios = axios.create({
       baseURL: url,
-      headers: {
-        Authorization: `Bearer ${cfg.token}`
-      }
+      headers: { Authorization: `Bearer ${cfg.token}` }
     })
   }
 
-  on<K extends keyof Events> (event: K, listener: Events[K]): this {
+  on<K extends keyof EventMap> (event: K, listener: EventMap[K]): this {
     return super.on(event, listener)
   }
 
-  emit<K extends keyof Events> (event: K, ...args: Parameters<Events[K]>) {
+  emit<K extends keyof EventMap> (event: K, ...args: Parameters<EventMap[K]>) {
     return super.emit(event, ...args)
   }
 
@@ -56,5 +77,225 @@ export class Client extends EventEmitter {
   /** 获取协议端信息 */
   async getImplInfo () {
     return await this.request<GetImplInfoOutput>('/get_impl_info', {})
+  }
+
+  /** 获取用户个人信息 */
+  async getUserProfile (userId: bigint) {
+    return await this.request<GetUserProfileOutput>('/get_user_profile', { user_id: Number(userId) })
+  }
+
+  /** 获取好友列表 */
+  async getFriendList (noCache: boolean = false) {
+    return await this.request<FriendEntity[]>('/get_friend_list', { no_cache: noCache })
+  }
+
+  /** 获取好友信息 */
+  async getFriendInfo (userId: number, noCache: boolean = false) {
+    return await this.request<FriendEntity>('/get_friend_info', { user_id: Number(userId), no_cache: noCache })
+  }
+
+  /** 获取群信息 */
+  async getGroupInfo (groupId: number, noCache: boolean = false) {
+    return await this.request<GroupEntity[]>('/get_group_info', { group_id: Number(groupId), no_cache: noCache })
+  }
+
+  /** 获取群列表 */
+  async getGroupList (noCache: boolean = false) {
+    return await this.request<GroupEntity>('/get_group_list', { no_cache: noCache })
+  }
+
+  /** 获取群成员列表 */
+  async getGroupMemberList (groupId: number, noCache: boolean = false) {
+    return await this.request<GroupMemberEntity[]>('/get_group_member_list', { group_id: Number(groupId), no_cache: noCache })
+  }
+
+  /** 获取群成员信息 */
+  async getGroupMemberInfo (groupId: number, userId: number, noCache: boolean = false) {
+    return await this.request<GroupMemberEntity>('/get_group_member_info', { group_id: Number(groupId), user_id: Number(userId), no_cache: noCache })
+  }
+
+  /** 获取 Cookies */
+  async getCookies (domain: string) {
+    return await this.request<GetCookiesOutput>('/get_cookies', { domain })
+  }
+
+  /** 获取 CSRF Token */
+  async getCsrfToken () {
+    return await this.request<GetCSRFTokenOutput>('/get_csrf_token', {})
+  }
+
+  /** 发送私聊消息 */
+  async sendPrivateMessage (userId: number, message: OutgoingSegment) {
+    return await this.request<SendPrivateMessageOutput>('/send_private_message', { user_id: Number(userId), message })
+  }
+
+  /** 发送群聊消息 */
+  async sendGroupMessage (groupId: number, message: OutgoingSegment) {
+    return await this.request<SendGroupMessageOutput>('/send_group_message', { group_id: Number(groupId), message })
+  }
+
+  /** 撤回私聊消息 */
+  async recallPrivateMessage (userId: number, messageSeq: number) {
+    return await this.request('/recall_private_message', { user_id: Number(userId), message_seq: Number(messageSeq) })
+  }
+
+  /** 撤回群聊消息 */
+  async recallGroupMessage (groupId: number, messageSeq: number) {
+    return await this.request('/recall_group_message', { group_id: Number(groupId), message_seq: Number(messageSeq) })
+  }
+
+  /** 获取消息 */
+  async getMessage (messageScene: 'friend' | 'group' | 'temp', peerId: number, messageSeq: number) {
+    return await this.request<GetMessageOutput>('/get_message', { message_scene: messageScene, peer_id: Number(peerId), message_seq: Number(messageSeq) })
+  }
+
+  /** 获取历史消息列表 */
+  async getHistoryMessage (messageScene: 'friend' | 'group' | 'temp', peerId: number, start?: number, limit: number = 20) {
+    return await this.request<GetHistoryMessagesOutput>('/get_history_messages', { message_scene: messageScene, peer_id: Number(peerId), start_message_seq: start, limit })
+  }
+
+  /** 获取临时资源链接 */
+  async getResourceTempUrl (resourceId: string) {
+    return await this.request<GetResourceTempUrlOutput>('/get_resource_temp_url', { resource_id: resourceId })
+  }
+
+  /** 获取合并转发消息内容 */
+  async getForwardedMessage (forwardId: string) {
+    return await this.request<GetForwardedMessagesOutput>('/get_forwarded_messages', { forward_id: forwardId })
+  }
+
+  /** 标记消息为已读 */
+  async markMessageAsRead (messageScene: 'friend' | 'group' | 'temp', peerId: number, messageSeq: number) {
+    return await this.request('/mark_message_as_read', { message_scene: messageScene, peer_id: Number(peerId), message_seq: Number(messageSeq) })
+  }
+
+  /** 发送好友戳一戳 */
+  async sendFriendNudge (userId: number, isSelf: boolean = false) {
+    return await this.request('/send_friend_nudge', { user_id: Number(userId), is_self: isSelf })
+  }
+
+  /** 发送名片点赞 */
+  async sendProfileLike (userId: number, count: number = 1) {
+    return await this.request('/send_profile_like', { user_id: Number(userId), count })
+  }
+
+  /** 获取好友请求列表 */
+  async getFriendRequests (limit: number = 20, isFiltered: boolean = false) {
+    return await this.request<GetFriendRequestsOutput>('/get_friend_requests', { limit, is_filtered: isFiltered })
+  }
+
+  /** 同意好友请求 */
+  async acceptFriendRequest (initiatorUid: string, isFiltered: boolean = false) {
+    return await this.request('/accept_friend_request', { initiator_uid: initiatorUid, is_filtered: isFiltered })
+  }
+
+  /** 拒绝好友请求 */
+  async rejectFriendRequest (initiatorUid: string, isFiltered: boolean = false, reason: string = '') {
+    return await this.request('/reject_friend_request', { initiator_uid: initiatorUid, is_filtered: isFiltered, reason })
+  }
+
+  /** 设置群名称 */
+  async setGroupName (groupId: number, name: string) {
+    return await this.request('/set_group_name', { group_id: Number(groupId), new_group_name: name })
+  }
+
+  /** 设置群头像 */
+  async setGroupAvatar (groupId: number, uri: string) {
+    return await this.request('/set_group_avatar', { group_id: Number(groupId), image_uri: uri })
+  }
+
+  /** 设置群名片 */
+  async setGroupMemberCard (groupId: number, userId: number, card: string) {
+    return await this.request('/set_group_member_card', { group_id: Number(groupId), user_id: Number(userId), card })
+  }
+
+  /** 设置群成员专属头衔 */
+  async setGroupMemberSpecialTitle (groupId: number, userId: number, title: string) {
+    return await this.request('/set_group_member_special_title', { group_id: Number(groupId), user_id: Number(userId), special_title: title })
+  }
+
+  /** 设置群管理员 */
+  async setGroupMemberAdmin (groupId: number, userId: number, isSet: boolean = true) {
+    return await this.request('/set_group_member_admin', { group_id: Number(groupId), user_id: Number(userId), isSet })
+  }
+
+  /** 设置群成员禁言 */
+  async setGroupMemberMute (groupId: number, userId: number, duration: number = 0) {
+    return await this.request('/set_group_member_mute', { group_id: Number(groupId), user_id: Number(userId), duration })
+  }
+
+  /** 设置群全员禁言 */
+  async setGroupWholeMute (groupId: number, isMute: boolean = true) {
+    return await this.request('/set_group_whole_mute', { group_id: Number(groupId), is_mute: isMute })
+  }
+
+  /** 踢出群成员 */
+  async kickGroupMember (groupId: number, userId: number, rejectRequest: boolean = false) {
+    return await this.request('/kick_group_member', { group_id: Number(groupId), user_id: Number(userId), reject_add_request: rejectRequest })
+  }
+
+  /** 获取群公告列表 */
+  async getGroupAnnouncements (groupId: number) {
+    return await this.request<GetGroupAnnouncementsOutput>('/get_group_announcements', { group_id: Number(groupId) })
+  }
+
+  /** 发送群公告 */
+  async sendGroupAnnouncement (groupId: number, content: string, uri?: string) {
+    return await this.request('/send_group_announcement', { group_id: Number(groupId), content, image_uri: uri })
+  }
+
+  /** 删除群公告 */
+  async deleteGroupAnnouncement (groupId: number, id: string) {
+    return await this.request('/delete_group_announcement', { group_id: Number(groupId), announcement_id: String(id) })
+  }
+
+  /** 获取群精华消息列表 */
+  async getGroupEssenceMessages (groupId: number, pageIndex: number, pageSize: number) {
+    return await this.request<GetGroupEssenceMessagesOutput>('/get_group_essence_messages', { group_id: Number(groupId), page_index: Number(pageIndex), page_size: Number(pageSize) })
+  }
+
+  /** 设置群精华消息 */
+  async setGroupEssenceMessage (groupId: number, messageSeq: number, isSet: boolean = true) {
+    return await this.request('/set_group_essence_message', { group_id: Number(groupId), message_seq: messageSeq, is_set: isSet })
+  }
+
+  /** 退出群 */
+  async quitGroup (groupId: number) {
+    return await this.request('/quit_group', { group_id: Number(groupId) })
+  }
+
+  /** 发送群消息表情回应 */
+  async setGroupMessageReaction (groupId: number, messageSeq: number, reaction: string, isAdd: boolean = true) {
+    return await this.request('/send_group_message_reaction', { group_id: Number(groupId), message_seq: messageSeq, reaction, is_add: isAdd })
+  }
+
+  /** 发送群戳一戳 */
+  async sendGroupNudge (groupId: number, userId: number) {
+    return await this.request('/send_group_nudge', { group_id: Number(groupId), user_id: Number(userId) })
+  }
+
+  /** 获取群通知列表 */
+  async getGroupNotifications (start?: number, isFiltered: boolean = false, limit: number = 20) {
+    return await this.request<GetGroupNotificationsOutput>('/get_group_notifications', { start_notification_seq: start, is_filtered: isFiltered, limit })
+  }
+
+  /** 同意入群/邀请他人入群请求 */
+  async acceptGroupRequest (noticeId: number, noticeType: 'join_request' | 'invited_join_request', groupId: number, isFiltered: boolean = false) {
+    return await this.request('/accept_group_request', { notification_seq: noticeId, notification_type: noticeType, group_id: Number(groupId), is_filtered: isFiltered })
+  }
+
+  /** 拒绝入群/邀请他人入群请求 */
+  async rejectGroupRequest (noticeId: number, noticeType: 'join_request' | 'invited_join_request', groupId: number, isFiltered: boolean = false, reason?: string) {
+    return await this.request('/reject_group_request', { notification_seq: noticeId, notification_type: noticeType, group_id: Number(groupId), is_filtered: isFiltered, reason })
+  }
+
+  /** 同意他人邀请自身入群 */
+  async acceptGroupInvitation (groupId: number, invitationSeq: number) {
+    return await this.request('/accept_group_invitation', { group_id: Number(groupId), invitation_seq: invitationSeq })
+  }
+
+  /** 拒绝他人邀请自身入群 */
+  async rejectGroupInvitation (groupId: number, invitationSeq: number) {
+    return await this.request('/reject_group_invitation', { group_id: Number(groupId), invitation_seq: invitationSeq })
   }
 }
