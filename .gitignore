@@ -4,3 +4,7 @@ node_modules/
 development.env
 @karinjs
 .env
+# 构建产物
+lib/
+dist/
+*.tsbuildinfo
