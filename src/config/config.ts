@@ -3,6 +3,7 @@ import { existsSync, karinPathBase, logger, mkdirSync, requireFileSync } from 'n
 import path from 'path'
 import { AdapterName, Root } from '@/utils'
 import { ConfigType } from './types'
+import { RandomToken } from '@/utils/utils'
 
 class Config {
   /** 默认配置 */
@@ -11,6 +12,7 @@ class Config {
   CfgPath: string
   constructor () {
     this.defaultConfig = {
+      webhookToken: RandomToken(),
       bots: []
     }
     this.CfgPath = path.join(karinPathBase, Root.pluginName, 'config', 'config.json')

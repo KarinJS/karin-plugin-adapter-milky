@@ -1,13 +1,21 @@
 import { app, logger } from 'node-karin'
-import express from 'node-karin/express'
+import express, { NextFunction, Request, Response } from 'node-karin/express'
 import { WebHookHander } from './handler'
 import { AdapterName } from '@/utils/other'
 import { Root } from '@/utils'
+import { Cfg } from '@/config'
 
 const RouterPath = '/milky/api/v1'
 const router = express.Router()
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const token = Cfg.getConfig.webhookToken || ''
+  if (!token) return next()
+  const accessToken = req.query.access_token
+  if (!accessToken || accessToken !== token) return res.status(403).json({ error: '无权限', message: '鉴权密钥错误' })
+  next()
+}
 router.use(express.json())
-router.post('/webhook', (req, _res) => {
+router.post('/webhook', authMiddleware, (req, _res) => {
   WebHookHander.handle(req.body)
 })
 router.get('/webhook', (_req, res) => res.json({
@@ -20,4 +28,4 @@ router.get('/webhook', (_req, res) => res.json({
 
 app.use(RouterPath, router)
 logger.info(`[${AdapterName}] WebHook启动成功`)
-logger.info(`[${AdapterName}] ${logger.yellow('WebHook 访问地址')}: ${logger.green(`http://127.0.0.1:${process.env.HTTP_PORT}${RouterPath}/webhook`)}`)
+logger.info(`[${AdapterName}] ${logger.yellow('WebHook 访问地址')}: ${logger.green(`http://127.0.0.1:${process.env.HTTP_PORT}${RouterPath}/webhook?access_token=${Cfg.getConfig.webhookToken || ''}`)}`)

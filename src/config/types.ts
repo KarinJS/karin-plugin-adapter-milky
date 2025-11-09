@@ -1,4 +1,5 @@
 export interface ConfigType {
+  webhookToken: string
   bots: BotCfg[]
 }
 export interface BotCfg {
