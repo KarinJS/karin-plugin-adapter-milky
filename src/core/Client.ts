@@ -34,9 +34,9 @@ import { WebSocketHandle } from '@/connection/websocket'
 type EventMap = {
   [K in Event['event_type']]: (data: Extract<Event, { event_type: K }>) => void
 } & {
-  error: (error: unknown) => void
-  success: () => void
-  close: (event: string) => void
+  system_error: (msg: unknown) => void
+  system_success: () => void
+  system_offline: (msg: string) => void
 }
 type ApiResponse<T = unknown> =
   | {
@@ -78,6 +78,8 @@ export class Client extends EventEmitter {
     /** 事件链接的鉴权Token */
     token: string
   }
+
+  #Clear: null | (() => void) = null
 
   constructor (cfg: BotCfg) {
     super()
@@ -121,13 +123,23 @@ export class Client extends EventEmitter {
       this.self.nickname = BotInfo.nickname
       if (this.self.protocol === 'webhook') {
         WebHookHander.register(this)
+        this.#Clear = () => {
+          WebHookHander.clear(this.self.uin)
+        }
       } else if (this.self.protocol === 'websocket') {
         const ws = new WebSocketHandle(this)
         await ws.ready()
+        this.#Clear = () => {
+          ws.clear()
+        }
       }
-      this.emit('success')
+      this.on('bot_offline', (data) => {
+        this.#Clear!()
+        this.emit('system_offline', data.data.reason)
+      })
+      this.emit('system_success')
     } catch (err) {
-      this.emit('error', err)
+      this.emit('system_error', err)
     }
   }
 

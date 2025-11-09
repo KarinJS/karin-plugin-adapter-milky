@@ -22,14 +22,14 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   }
 
   async init () {
-    this.super.on('error', (event) => {
-      this.logger('error', '适配器 连接错误', event)
+    this.super.on('system_error', (event) => {
+      this.logger('error', '适配器 连接错误: ', event)
     })
-    this.super.on('bot_offline', (event) => {
-      this.logger('error', 'Bot下线', event)
+    this.super.on('system_offline', (event) => {
+      this.logger('error', 'Bot下线: ', event)
       unregisterBot('index', this.adapter.index)
     })
-    this.super.on('success', () => {
+    this.super.on('system_success', () => {
       const selfId = String(this.super.self.uin)
       this.account = {
         uin: selfId,

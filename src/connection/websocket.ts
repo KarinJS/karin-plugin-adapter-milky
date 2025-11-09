@@ -54,7 +54,7 @@ export class WebSocketHandle {
     })
     this.#wss?.on('close', () => {
       this.clear()
-      this.client.emit('close', 'WebSocket 断开连接')
+      this.client.emit('system_offline', 'WebSocket 断开连接')
     })
   }
 
