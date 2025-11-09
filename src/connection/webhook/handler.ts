@@ -8,11 +8,18 @@ class Hander {
     this.ClientMap = new Map()
   }
 
-  register () { }
+  /** 注册事件 */
+  register (client: Client) {
+    if (client.uin && !this.ClientMap.get(client.uin)) {
+      this.ClientMap.set(client.uin, client)
+    } else throw new Error('uin获取失败或者Client已注册')
+  }
+
+  /** 触发事件 */
   handle (data: Event) {
     const client = this.ClientMap.get(data.self_id)
     if (!client) {
-      logger.debug('[milky Adapter]收到未知请求', data)
+      logger.debug('[milky Adapter]收到未知客户端请求', data)
     }
   }
 }

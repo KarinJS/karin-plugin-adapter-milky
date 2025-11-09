@@ -2,13 +2,18 @@ import EventEmitter from 'events'
 import axios, { AxiosInstance } from 'node-karin/axios'
 import {
   Event,
-  FriendEntity,
   GetCookiesOutput,
   GetCSRFTokenOutput,
   GetForwardedMessagesOutput,
+  GetFriendInfoOutput,
+  GetFriendListOutput,
   GetFriendRequestsOutput,
   GetGroupAnnouncementsOutput,
   GetGroupEssenceMessagesOutput,
+  GetGroupInfoOutput,
+  GetGroupListOutput,
+  GetGroupMemberInfoOutput,
+  GetGroupMemberListOutput,
   GetGroupNotificationsOutput,
   GetHistoryMessagesOutput,
   GetImplInfoOutput,
@@ -16,16 +21,18 @@ import {
   GetMessageOutput,
   GetResourceTempUrlOutput,
   GetUserProfileOutput,
-  GroupEntity,
-  GroupMemberEntity,
   OutgoingSegment,
   SendGroupMessageOutput,
   SendPrivateMessageOutput
 } from '@saltify/milky-types'
 import { BotCfg } from '@/config/types'
+import { Root } from '@/utils'
+import { WebHookHander } from '@/connection/webhook/handler'
 
 type EventMap = {
   [K in Event['event_type']]: (data: Extract<Event, { event_type: K }>) => void
+} & {
+  error: (error: unknown) => void
 }
 type ApiResponse<T = unknown> =
   | {
@@ -42,9 +49,17 @@ type ApiResponse<T = unknown> =
 /** 群聊与消息相关接口扩展 */
 export class Client extends EventEmitter {
   private axios: AxiosInstance
-
+  /** 适配器名称 */
+  name: string
+  version: string
+  uin: number
+  cfg: BotCfg
   constructor (cfg: BotCfg) {
     super()
+    this.cfg = cfg
+    this.name = 'Milky'
+    this.version = Root.pluginVersion
+    this.uin = 0
     const url = new URL('api', cfg.url.endsWith('/') ? cfg.url : cfg.url + '/').toString()
     this.axios = axios.create({
       baseURL: url,
@@ -58,6 +73,18 @@ export class Client extends EventEmitter {
 
   emit<K extends keyof EventMap> (event: K, ...args: Parameters<EventMap[K]>) {
     return super.emit(event, ...args)
+  }
+
+  async init () {
+    try {
+      const BotInfo = Object.assign(await this.getLoginInfo(), await this.getImplInfo())
+      this.uin = BotInfo.uin
+      if (this.cfg.protocol === 'webhook') {
+        WebHookHander.register(this)
+      }
+    } catch (err) {
+      this.emit('error', err)
+    }
   }
 
   private async request<T> (path: string, data?: any) {
@@ -86,32 +113,32 @@ export class Client extends EventEmitter {
 
   /** 获取好友列表 */
   async getFriendList (noCache: boolean = false) {
-    return await this.request<FriendEntity[]>('/get_friend_list', { no_cache: noCache })
+    return await this.request<GetFriendListOutput>('/get_friend_list', { no_cache: noCache })
   }
 
   /** 获取好友信息 */
   async getFriendInfo (userId: number, noCache: boolean = false) {
-    return await this.request<FriendEntity>('/get_friend_info', { user_id: Number(userId), no_cache: noCache })
+    return await this.request<GetFriendInfoOutput>('/get_friend_info', { user_id: Number(userId), no_cache: noCache })
   }
 
   /** 获取群信息 */
   async getGroupInfo (groupId: number, noCache: boolean = false) {
-    return await this.request<GroupEntity[]>('/get_group_info', { group_id: Number(groupId), no_cache: noCache })
+    return await this.request<GetGroupInfoOutput>('/get_group_info', { group_id: Number(groupId), no_cache: noCache })
   }
 
   /** 获取群列表 */
   async getGroupList (noCache: boolean = false) {
-    return await this.request<GroupEntity>('/get_group_list', { no_cache: noCache })
+    return await this.request<GetGroupListOutput>('/get_group_list', { no_cache: noCache })
   }
 
   /** 获取群成员列表 */
   async getGroupMemberList (groupId: number, noCache: boolean = false) {
-    return await this.request<GroupMemberEntity[]>('/get_group_member_list', { group_id: Number(groupId), no_cache: noCache })
+    return await this.request<GetGroupMemberListOutput>('/get_group_member_list', { group_id: Number(groupId), no_cache: noCache })
   }
 
   /** 获取群成员信息 */
   async getGroupMemberInfo (groupId: number, userId: number, noCache: boolean = false) {
-    return await this.request<GroupMemberEntity>('/get_group_member_info', { group_id: Number(groupId), user_id: Number(userId), no_cache: noCache })
+    return await this.request<GetGroupMemberInfoOutput>('/get_group_member_info', { group_id: Number(groupId), user_id: Number(userId), no_cache: noCache })
   }
 
   /** 获取 Cookies */
