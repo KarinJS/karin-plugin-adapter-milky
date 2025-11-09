@@ -12,7 +12,7 @@ class Config {
   CfgPath: string
   constructor () {
     this.defaultConfig = {
-      webhookToken: RandomToken(),
+      webhookToken: '',
       bots: []
     }
     this.CfgPath = path.join(karinPathBase, Root.pluginName, 'config', 'config.json')
@@ -20,9 +20,13 @@ class Config {
   }
 
   init (): void {
+    const def = this.defaultConfig
+    def.webhookToken = RandomToken()
     if (!existsSync(this.CfgPath)) {
       mkdirSync(path.dirname(this.CfgPath))
-      fs.writeFileSync(this.CfgPath, JSON.stringify(this.defaultConfig, null, 2), 'utf8')
+      const def = { ...this.defaultConfig }
+      def.webhookToken = RandomToken()
+      fs.writeFileSync(this.CfgPath, JSON.stringify(def, null, 2), 'utf8')
     }
   }
 

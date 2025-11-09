@@ -20,7 +20,9 @@ class Hander {
     const client = this.ClientMap.get(data.self_id)
     if (!client) {
       logger.debug('[milky Adapter]收到未知客户端请求', data)
+      return true
     }
+    client.emit(data.event_type, data as any)
   }
 }
 export const WebHookHander = new Hander()
