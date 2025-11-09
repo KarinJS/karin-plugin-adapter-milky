@@ -1,3 +1,4 @@
+/** 随机生成密钥 */
 export const RandomToken = (length: number = 8) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = ''
@@ -7,3 +8,6 @@ export const RandomToken = (length: number = 8) => {
   }
   return result
 }
+
+/** 自动去除URL最后尾的/ */
+export const UrlEnd = (url: string) => url.endsWith('/') ? url.slice(0, -1) : url

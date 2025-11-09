@@ -28,11 +28,15 @@ import {
 import { BotCfg } from '@/config/types'
 import { Root } from '@/utils'
 import { WebHookHander } from '@/connection/webhook/handler'
+import { UrlEnd } from '@/utils/utils'
+import { WebSocketHandle } from '@/connection/websocket'
 
 type EventMap = {
   [K in Event['event_type']]: (data: Extract<Event, { event_type: K }>) => void
 } & {
   error: (error: unknown) => void
+  success: () => void
+  close: (event: string) => void
 }
 type ApiResponse<T = unknown> =
   | {
@@ -48,21 +52,55 @@ type ApiResponse<T = unknown> =
 
 /** 群聊与消息相关接口扩展 */
 export class Client extends EventEmitter {
-  private axios: AxiosInstance
-  /** 适配器名称 */
-  name: string
-  version: string
-  uin: number
-  cfg: BotCfg
+  #axios: AxiosInstance
+  /** 适配器信息 */
+  adapter: {
+    /** 适配器名称 */
+    name: string
+    /** 适配器版本 */
+    version: string
+  }
+
+  /** 账号信息 */
+  self: {
+    /** 账号id */
+    uin: number
+    /** 账号昵称 */
+    nickname: string
+    /** 连接协议 */
+    protocol: 'webhook' | 'sse' | 'websocket'
+    /** 事件链接 */
+    EventUrl: string
+    /** Api链接 */
+    ApiUrl: string
+    /** 连接时间 */
+    connectTime: number
+    /** 事件链接的鉴权Token */
+    token: string
+  }
+
   constructor (cfg: BotCfg) {
     super()
-    this.cfg = cfg
-    this.name = 'Milky'
-    this.version = Root.pluginVersion
-    this.uin = 0
-    const url = new URL('api', cfg.url.endsWith('/') ? cfg.url : cfg.url + '/').toString()
-    this.axios = axios.create({
-      baseURL: url,
+    const url = UrlEnd(cfg.url)
+    this.adapter = {
+      name: 'Milky',
+      version: Root.pluginVersion,
+    }
+    this.self = {
+      uin: 0,
+      nickname: 'Milky-Bot',
+      protocol: cfg.protocol,
+      EventUrl: cfg.protocol === 'sse'
+        ? url + '/event'
+        : cfg.protocol === 'websocket'
+          ? (() => { const urlObj = new URL(url); urlObj.protocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:'; return urlObj.toString() })()
+          : '',
+      ApiUrl: url + '/api',
+      connectTime: 0,
+      token: cfg.token
+    }
+    this.#axios = axios.create({
+      baseURL: this.self.ApiUrl,
       headers: { Authorization: `Bearer ${cfg.token}` }
     })
   }
@@ -78,17 +116,23 @@ export class Client extends EventEmitter {
   async init () {
     try {
       const BotInfo = Object.assign(await this.getLoginInfo(), await this.getImplInfo())
-      this.uin = BotInfo.uin
-      if (this.cfg.protocol === 'webhook') {
+      if (!BotInfo.uin) throw new Error('获取登录信息失败')
+      this.self.uin = BotInfo.uin
+      this.self.nickname = BotInfo.nickname
+      if (this.self.protocol === 'webhook') {
         WebHookHander.register(this)
+      } else if (this.self.protocol === 'websocket') {
+        const ws = new WebSocketHandle(this)
+        await ws.ready()
       }
+      this.emit('success')
     } catch (err) {
       this.emit('error', err)
     }
   }
 
   private async request<T> (path: string, data?: any) {
-    const res = await this.axios.post<ApiResponse<T>>(path, data ?? {})
+    const res = await this.#axios.post<ApiResponse<T>>(path, data ?? {})
     if (res.data.status === 'failed') {
       throw new Error(res.data.message)
     } else {

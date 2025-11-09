@@ -10,8 +10,8 @@ class Hander {
 
   /** 注册事件 */
   register (client: Client) {
-    if (client.uin && !this.ClientMap.get(client.uin)) {
-      this.ClientMap.set(client.uin, client)
+    if (client.self.uin && !this.ClientMap.get(client.self.uin)) {
+      this.ClientMap.set(client.self.uin, client)
     } else throw new Error('uin获取失败或者Client已注册')
   }
 
