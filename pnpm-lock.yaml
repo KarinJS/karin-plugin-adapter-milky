@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@saltify/milky-types':
-        specifier: ^1.0.0
-        version: 1.0.0
       eventsource:
         specifier: ^4.0.0
         version: 4.0.0
@@ -18,6 +15,9 @@ importers:
         specifier: ^8.18.3
         version: 8.18.3
     devDependencies:
+      '@saltify/milky-types':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@types/express':
         specifier: ^5.0.1
         version: 5.0.5

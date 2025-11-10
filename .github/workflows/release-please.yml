@@ -1,0 +1,46 @@
+name: Release and Publish
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          release-type: node
+          default-branch: main
+      # 检出代码
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+      # 设置 Node.js
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+        if: ${{ steps.release.outputs.release_created }}
+      # 设置 pnpm
+      - name: 设置 pnpm
+        uses: pnpm/action-setup@v2
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        with:
+          version: 9
+          run_install: true
+        if: ${{ steps.release.outputs.release_created }}
+      # 构建输出
+      - run: pnpm run build
+        if: ${{ steps.release.outputs.release_created }}
+      # 删除开发依赖
+      - run: npm pkg delete devDependencies
+        if: ${{ steps.release.outputs.release_created }}
+      # 发布到 npm
+      - run: pnpm run pub
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        if: ${{ steps.release.outputs.release_created }}

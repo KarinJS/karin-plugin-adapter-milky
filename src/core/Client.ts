@@ -30,6 +30,7 @@ import { Root } from '@/utils'
 import { WebHookHander } from '@/connection/webhook/handler'
 import { UrlEnd } from '@/utils/utils'
 import { WebSocketHandle } from '@/connection/websocket'
+import { SSEHandle } from '@/connection/ServerSentEvents'
 
 type EventMap = {
   [K in Event['event_type']]: (data: Extract<Event, { event_type: K }>) => void
@@ -140,6 +141,12 @@ export class Client extends EventEmitter {
         this.#Clear = () => {
           ws.clear()
         }
+      } else {
+        const sse = new SSEHandle(this)
+        sse.connect()
+        this.#Clear = () => {
+          sse.clear()
+        }
       }
       this.on('bot_offline', (data) => {
         this.#Clear!()
@@ -217,12 +224,12 @@ export class Client extends EventEmitter {
   }
 
   /** 发送私聊消息 */
-  async sendPrivateMessage (userId: number, message: OutgoingSegment) {
+  async sendPrivateMessage (userId: number, message: OutgoingSegment[]) {
     return await this.request<SendPrivateMessageOutput>('/send_private_message', { user_id: Number(userId), message })
   }
 
   /** 发送群聊消息 */
-  async sendGroupMessage (groupId: number, message: OutgoingSegment) {
+  async sendGroupMessage (groupId: number, message: OutgoingSegment[]) {
     return await this.request<SendGroupMessageOutput>('/send_group_message', { group_id: Number(groupId), message })
   }
 
