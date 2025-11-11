@@ -1,5 +1,5 @@
 import { BotCfg } from '@/config/types'
-import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, logger, MessageResponse, NodeElement, registerBot, SendMsgResults, unregisterBot } from 'node-karin'
+import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot } from 'node-karin'
 import { Client } from './Client'
 import { createMessage } from '@/event/message'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
