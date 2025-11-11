@@ -1,5 +1,5 @@
 import { BotCfg } from '@/config/types'
-import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot } from 'node-karin'
+import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, GroupInfo, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot } from 'node-karin'
 import { Client } from './Client'
 import { createMessage } from '@/event/message'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
@@ -198,5 +198,39 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
 
   async setGroupAdmin (_groupId: string, _targetId: string, _isAdmin: boolean): Promise<void> {
     await this.super.setGroupMemberAdmin(+_groupId, +_targetId, _isAdmin)
+  }
+
+  async setGroupMemberCard (_groupId: string, _targetId: string, _card: string): Promise<void> {
+    await this.super.setGroupMemberCard(+_groupId, +_targetId, _card)
+  }
+
+  async setGroupName (_groupId: string, _groupName: string): Promise<void> {
+    await this.super.setGroupName(+_groupId, _groupName)
+  }
+
+  async setGroupQuit (_groupId: string, _isDismiss: boolean): Promise<void> {
+    await this.super.quitGroup(+_groupId)
+  }
+
+  async setGroupMemberTitle (_groupId: string, _targetId: string, _title: string): Promise<void> {
+    await this.super.setGroupMemberSpecialTitle(+_groupId, +_targetId, _title)
+  }
+
+  // async setGroupRemark (_groupId: string, _remark: string): Promise<boolean> {
+  // }
+
+  // async getGroupMuteList (_groupId: string): Promise<Array<GetGroupMuteListResponse>> {
+
+  // }
+
+  async getGroupInfo (_groupId: string, _noCache?: boolean): Promise<GroupInfo> {
+    const res = await this.super.getGroupInfo(+_groupId, _noCache)
+    return {
+      groupId: res.group.group_id + '',
+      groupName: res.group.group_name,
+      maxMemberCount: res.group.max_member_count,
+      memberCount: res.group.member_count,
+      admins: []
+    }
   }
 }
