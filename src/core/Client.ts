@@ -248,7 +248,7 @@ export class Client extends EventEmitter {
   }
 
   /** 获取 CSRF Token */
-  async getCsrfToken () {
+  async getCSRFToken () {
     return await this.request<GetCSRFTokenOutput>('/get_csrf_token', {})
   }
 

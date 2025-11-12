@@ -1,5 +1,5 @@
 import { BotCfg } from '@/config/types'
-import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, GroupInfo, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot } from 'node-karin'
+import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
 import { Client } from './Client'
 import { createMessage } from '@/event/message'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
@@ -230,7 +230,176 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
       groupName: res.group.group_name,
       maxMemberCount: res.group.max_member_count,
       memberCount: res.group.member_count,
-      admins: []
+      admins: [],
+      avatar: await this.getGroupAvatarUrl(_groupId, 640 as any)
     }
+  }
+
+  async getGroupList (_refresh?: boolean): Promise<Array<GroupInfo>> {
+    const res = (await this.super.getGroupList(_refresh)).groups
+    const groups: GroupInfo[] = []
+    for (const i of res) {
+      groups.push({
+        groupId: i.group_id + '',
+        groupName: i.group_name,
+        maxMemberCount: i.max_member_count,
+        memberCount: i.member_count,
+        admins: []
+      })
+    }
+    return groups
+  }
+
+  async getGroupMemberInfo (_groupId: string, _targetId: string, _refresh?: boolean): Promise<GroupMemberInfo> {
+    const res = await this.super.getGroupMemberInfo(+_groupId, +_targetId, _refresh)
+    return {
+      userId: res.member.user_id + '',
+      role: res.member.role,
+      nick: res.member.nickname,
+      age: 0,
+      uniqueTitle: res.member.title,
+      card: res.member.card,
+      joinTime: res.member.join_time,
+      lastActiveTime: res.member.last_sent_time,
+      level: res.member.level,
+      shutUpTime: res.member.shut_up_end_time || undefined,
+      sex: res.member.sex,
+      sender: {
+        userId: res.member.user_id + '',
+        nick: res.member.nickname,
+        name: res.member.nickname,
+        role: res.member.role,
+        card: res.member.card,
+        level: res.member.level,
+        title: res.member.title
+      }
+    }
+  }
+
+  async getGroupMemberList (_groupId: string, _refresh?: boolean): Promise<Array<GroupMemberInfo>> {
+    const res = (await this.super.getGroupMemberList(+_groupId, _refresh)).members
+    const info: GroupMemberInfo[] = []
+    for (const i of res) {
+      info.push({
+        userId: i.user_id + '',
+        role: i.role,
+        nick: i.nickname,
+        age: 0,
+        uniqueTitle: i.title,
+        card: i.card,
+        joinTime: i.join_time,
+        lastActiveTime: i.last_sent_time,
+        level: i.level,
+        shutUpTime: i.shut_up_end_time || undefined,
+        sex: i.sex,
+        sender: {
+          userId: i.user_id + '',
+          nick: i.nickname,
+          name: i.nickname,
+          role: i.role,
+          card: i.card,
+          level: i.level,
+          title: i.title
+        }
+      })
+    }
+    return info
+  }
+
+  // async getGroupHonor (_groupId: string): Promise<Array<QQGroupHonorInfo>> {
+  // }
+
+  async getGroupHighlights (_groupId: string, _page: number, _pageSize: number): Promise<Array<GetGroupHighlightsResponse>> {
+    const res = (await this.super.getGroupEssenceMessages(+_groupId, _page, _pageSize)).messages
+    const list: GetGroupHighlightsResponse[] = []
+    for (const i of res) {
+      list.push({
+        groupId: i.group_id + '',
+        senderId: i.sender_id + '',
+        senderName: i.sender_name,
+        operatorId: i.operator_id + '',
+        operatorName: i.operator_name,
+        operationTime: i.operation_time,
+        messageTime: i.message_time,
+        messageId: this.super.serializeMsgId('group', i.sender_id, i.message_seq),
+        messageSeq: i.message_seq,
+        jsonElements: JSON.stringify(i.segments)
+      })
+    }
+    return list
+  }
+
+  async setGroupHighlights (_groupId: string, _messageId: string, _create: boolean): Promise<void> {
+    await this.super.setGroupEssenceMessage(+_groupId, this.super.deserializeMsgId(_messageId).seq, _create)
+  }
+
+  //   async getNotJoinedGroupInfo (_groupId: string): Promise<GroupInfo> {
+  //   }
+
+  // async getAtAllCount (_groupId: string): Promise<GetAtAllCountResponse> {
+  // }
+
+  // async getStrangerInfo (_targetId: string): Promise<UserInfo> {
+  // }
+
+  async getFriendList (_refresh?: boolean): Promise<Array<UserInfo>> {
+    const res = (await this.super.getFriendList(_refresh)).friends
+    const info: UserInfo[] = []
+    for (const i of res) {
+      info.push({
+        userId: i.user_id + '',
+        nick: i.nickname,
+        qid: i.qid,
+        remark: i.remark,
+        sex: i.sex
+      })
+    }
+    return info
+  }
+
+  async sendLike (_targetId: string, _count: number): Promise<void> {
+    await this.super.sendProfileLike(+_targetId, _count)
+  }
+
+  async getAvatarUrl (_userId: string, _size?: 0 | 40 | 100 | 140): Promise<string> {
+    return `https://q1.qlogo.cn/g?b=qq&s=${_size || 0}&nk=${_userId}`
+  }
+
+  async getGroupAvatarUrl (_groupId: string, _size?: 0 | 40 | 100 | 140, _history?: number): Promise<string> {
+    return `https://p.qlogo.cn/gh/${_groupId}/${_groupId}/${_size}`
+  }
+
+  // async pokeUser (_contact: Contact, _count?: number): Promise<boolean> {
+  // }
+
+  async setFriendApplyResult (_requestId: string, _isApprove: boolean, _remark?: string): Promise<void> {
+    _isApprove
+      ? await this.super.acceptFriendRequest(_requestId)
+      : await this.super.rejectFriendRequest(_requestId)
+  }
+
+  // async setGroupApplyResult (_requestId: string, _isApprove: boolean, _denyReason?: string): Promise<void> {
+  //   _isApprove
+  //     ? await this.super.acceptGroupRequest(_requestId, 'join_request')
+  //     : await this.super.rejectGroupJoinRequest(_requestId, _denyReason)
+  // }
+
+  // async setInvitedJoinGroupResult (_requestId: string, _isApprove: boolean): Promise<void> {
+  // }
+
+  async getCookies (_domain: string): Promise<{ cookie: string }> {
+    const res = await this.super.getCookies(_domain)
+    return { cookie: res.cookies }
+  }
+
+  async getCredentials (_domain: string): Promise<{ cookies: string; csrf_token: number }> {
+    const cookies = (await this.getCookies(_domain)).cookie
+    const token = (await this.getCSRFToken()).token
+    return { cookies, csrf_token: token }
+  }
+
+  async getCSRFToken (): Promise<{ token: number }> {
+    const res = await this.super.getCSRFToken()
+    return { token: +res.csrf_token }
   }
 }
