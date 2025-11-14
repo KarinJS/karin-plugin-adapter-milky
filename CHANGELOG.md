@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.2](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.0.1...v1.0.2) (2025-11-12)
+
+
+### Bug Fixes
+
+* 累了，睡觉(补全接口) ([71d4581](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/71d458137d4776ae8fa58050a4264994a70f05f2))
+* 补全Client 类注释 ([1e63072](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/1e63072f1bfa60df00e9c4cf00173babfbfe137d))
+* 补全大部分Karin API ([796a865](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/796a865d1b1019d6bdba61d082b4b1748c0bda85))
+* 补全部分api ([5a6b573](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/5a6b573b2828fc03554c0d6e70418978d118b107))
+
 ## [1.0.1](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.0.0...v1.0.1) (2025-11-10)
 
 
