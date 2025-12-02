@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.0.2...v1.0.3) (2025-12-02)
+
+
+### Bug Fixes
+
+* 补全Client的文件相关接口 ([85adfa8](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/85adfa8c5f194c4906da81be4a039d220a0ff5c8))
+
 ## [1.0.2](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.0.1...v1.0.2) (2025-11-12)
 
 
