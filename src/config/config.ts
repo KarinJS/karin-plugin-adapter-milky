@@ -31,7 +31,7 @@ class Config {
   }
 
   /** 读取配置文件 */
-  get getConfig (): ConfigType {
+  get get (): ConfigType {
     try {
       const cfg = requireFileSync(this.CfgPath, { force: true }) as ConfigType
       return { ...this.defaultConfig, ...cfg }

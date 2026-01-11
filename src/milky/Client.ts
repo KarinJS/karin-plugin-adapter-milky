@@ -33,10 +33,14 @@ import {
 } from '@saltify/milky-types'
 import { BotCfg } from '@/config/types'
 import { Root } from '@/utils'
-import { WebHookHander } from '@/connection/webhook/handler'
+import { WebHookHander } from '@/milky/connection/webhook/handler'
 import { UrlEnd } from '@/utils/utils'
-import { WebSocketHandle } from '@/connection/websocket'
-import { SSEHandle } from '@/connection/ServerSentEvents'
+import { WebSocketHandle } from '@/milky/connection/websocket'
+import { SSEHandle } from '@/milky/connection/ServerSentEvents'
+import type { GroupApi } from '@/milky/api/group'
+import type { FriendApi } from '@/milky/api/friend'
+import { createGroupApi } from '@/milky/api/group'
+import { createFriendApi } from '@/milky/api/friend'
 
 type EventMap = {
   [K in Event['event_type']]: (data: Extract<Event, { event_type: K }>) => void
@@ -615,17 +619,6 @@ export class Client extends EventEmitter {
   }
 
   /**
-   * 上传私聊文件
-   * @param userId 好友 QQ 号
-   * @param fileUri 文件 URI，支持 `file://` `http(s)://` `base64://` 三种格式
-   * @param fileName 文件名称
-   * @returns
-   */
-  async uploadPrivateFile (userId: number, fileUri: string, fileName: string) {
-    return await this.request<UploadPrivateFileOutput>('/upload_private_file', { user_id: +userId, file_uri: fileUri, file_name: fileName })
-  }
-
-  /**
    * 上传群文件
    * @param groupId 群号
    * @param folderId 目标文件夹 ID
@@ -635,17 +628,6 @@ export class Client extends EventEmitter {
    */
   async uploadGroupFile (groupId: number, folderId: string = '/', fileUri: string, fileName: string) {
     return await this.request<UploadGroupFileOutput>('/upload_group_file', { group_id: +groupId, parent_folder_id: folderId, file_uri: fileUri, file_name: fileName })
-  }
-
-  /**
-   * 获取私聊文件下载链接
-   * @param userId 好友 QQ 号
-   * @param fileId 文件 ID
-   * @param fileHash 文件的 TriSHA1 哈希值
-   * @returns
-   */
-  async getPrivateFileDownloadUrl (userId: string, fileId: string, fileHash: string) {
-    return await this.request<GetPrivateFileDownloadUrlOutput>('/get_private_file_download_url', { user_id: +userId, file_id: fileId, file_hash: fileHash })
   }
 
   /**
@@ -734,6 +716,28 @@ export class Client extends EventEmitter {
   }
 
   /**
+   * 上传私聊文件
+   * @param userId 好友 QQ 号
+   * @param fileUri 文件 URI，支持 `file://` `http(s)://` `base64://` 三种格式
+   * @param fileName 文件名称
+   * @returns
+   */
+  async uploadPrivateFile (userId: number, fileUri: string, fileName: string) {
+    return await this.request<UploadPrivateFileOutput>('/upload_private_file', { user_id: +userId, file_uri: fileUri, file_name: fileName })
+  }
+
+  /**
+   * 获取私聊文件下载链接
+   * @param userId 好友 QQ 号
+   * @param fileId 文件 ID
+   * @param fileHash 文件的 TriSHA1 哈希值
+   * @returns
+   */
+  async getPrivateFileDownloadUrl (userId: string, fileId: string, fileHash: string) {
+    return await this.request<GetPrivateFileDownloadUrlOutput>('/get_private_file_download_url', { user_id: +userId, file_id: fileId, file_hash: fileHash })
+  }
+
+  /**
    * 解析消息ID
    * @param msgId 消息ID
    * @returns
@@ -761,4 +765,23 @@ export class Client extends EventEmitter {
   serializeMsgId (scene: string, peerId: number, seq: number) {
     return `${scene}:${peerId}:${seq}`
   }
+
+  /**
+   * pickGroup 风格接口，返回一个空对象的 Proxy，并在其上暴露群相关 API。
+   * 支持 pickGroup(id).sendMsg(...)/pickGroup(id).getInfo(...)
+   */
+  pickGroup (groupId: number): GroupApi {
+    return createGroupApi(this, +groupId)
+  }
+
+  /**
+   * pickFriend 风格接口，返回绑定了 userId 的好友相关 API。
+   * 支持 pickFriend(id).sendMsg(...)/pickFriend(id).getInfo(...)
+   */
+  pickFriend (userId: number): FriendApi {
+    return createFriendApi(this, +userId)
+  }
 }
+
+export type { GroupApi } from '@/milky/api/group'
+export type { FriendApi } from '@/milky/api/friend'

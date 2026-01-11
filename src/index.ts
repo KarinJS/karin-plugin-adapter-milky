@@ -1,5 +1,5 @@
 import { logger } from 'node-karin'
-import '@/connection/webhook/webhook'
+import '@/milky/connection/webhook/webhook'
 import '@/core/init'
 import { AdapterName } from './utils'
 

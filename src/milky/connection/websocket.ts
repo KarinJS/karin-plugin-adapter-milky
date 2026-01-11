@@ -1,4 +1,4 @@
-import { Client } from '@/core/Client'
+import { Client } from '@/milky/Client'
 import { AdapterName } from '@/utils'
 import { Event } from '@saltify/milky-types'
 import { logger } from 'node-karin'

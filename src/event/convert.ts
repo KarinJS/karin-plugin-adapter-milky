@@ -1,5 +1,6 @@
 import { IncomingSegment, OutgoingSegment } from '@saltify/milky-types'
 import { Elements, segment } from 'node-karin'
+import { segment as Segment } from '@/milky/segment'
 
 /** milky 消息转 Karin */
 export async function AdapterConvertKarin (data: Array<IncomingSegment>): Promise<Array<Elements>> {
@@ -46,33 +47,28 @@ export async function KarinConvertAdapter (data: Array<Elements>): Promise<Array
   for (const i of data) {
     switch (i.type) {
       case 'text':
-        elements.push({ type: 'text', data: { text: String(i.text) } })
+        elements.push(Segment.text(i.text))
         break
-      case 'at': {
-        if (i.targetId === 'all') {
-          elements.push({ type: 'mention_all', data: {} })
-        } else {
-          elements.push({ type: 'mention', data: { user_id: Number(i.targetId) } })
-        }
+      case 'at':
+        elements.push(Segment.at(i.targetId))
         break
-      }
       case 'face':
-        elements.push({ type: 'face', data: { face_id: String(i.id) } })
+        elements.push(Segment.face(i.id, i.isBig))
         break
       case 'reply':
-        elements.push({ type: 'reply', data: { message_seq: Number(i.messageId) } })
+        elements.push(Segment.reply(i.messageId))
         break
       case 'image':
-        elements.push({ type: 'image', data: { uri: i.file, summary: i.summary, sub_type: 'normal' } })
+        elements.push(Segment.image(i.file, { summary: i.summary, subType: i.subType as any }))
         break
       case 'record':
-        elements.push({ type: 'record', data: { uri: i.file } })
+        elements.push(Segment.record(i.file))
         break
       case 'video':
-        elements.push({ type: 'video', data: { uri: i.file } })
+        elements.push(Segment.video(i.file))
         break
       default:
-        elements.push({ type: 'text', data: { text: JSON.stringify(i) } })
+        elements.push(Segment.text(JSON.stringify(i)))
     }
   }
   return elements

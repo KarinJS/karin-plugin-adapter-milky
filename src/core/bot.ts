@@ -1,6 +1,6 @@
 import { BotCfg } from '@/config/types'
 import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
-import { Client } from './Client'
+import { Client } from '@/milky/Client'
 import { createMessage } from '@/event/message'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
 
@@ -80,10 +80,10 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
     const msg = await KarinConvertAdapter(elements)
     let res
     if (contact.scene === 'group') {
-      res = await this.super.sendGroupMessage(Number(contact.peer), msg)
+      res = await this.super.pickGroup(Number(contact.peer)).sendMsg(msg)
     } else {
       if (contact.scene === 'friend') {
-        res = await this.super.sendPrivateMessage(Number(contact.peer), msg)
+        res = await this.super.pickFriend(Number(contact.peer)).sendMsg(msg)
       } else {
         throw new Error('不支持的操作')
       }
@@ -102,10 +102,10 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
     const Id = Number(contact.peer)
     const { seq } = this.super.deserializeMsgId(messageId)
     if (contact.scene === 'group') {
-      await this.super.recallGroupMessage(Id, seq)
+      await this.super.pickGroup(Id).recall(seq)
     } else {
       if (contact.scene === 'friend') {
-        await this.super.recallPrivateMessage(Id, seq)
+        await this.super.pickFriend(Id).recall(seq)
       }
     }
   }
@@ -181,39 +181,39 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   async setMsgReaction (contact: Contact, messageId: string, faceId: number | string, isSet: boolean): Promise<void> {
     if (contact.scene !== 'group') throw new Error('仅支持群聊设置表情回应')
     const seq = this.super.deserializeMsgId(messageId).seq
-    await this.super.setGroupMessageReaction(+contact.peer, seq, faceId + '', isSet)
+    await this.super.pickGroup(+contact.peer).setMessageReaction(seq, faceId + '', isSet)
   }
 
   async groupKickMember (_groupId: string, _targetId: string, _rejectAddRequest?: boolean, _kickReason?: string): Promise<void> {
-    await this.super.kickGroupMember(+_groupId, +_targetId, _rejectAddRequest)
+    await this.super.pickGroup(+_groupId).kick(+_targetId, _rejectAddRequest)
   }
 
   async setGroupMute (_groupId: string, _targetId: string, _duration: number): Promise<void> {
-    await this.super.setGroupMemberMute(+_groupId, +_targetId, _duration)
+    await this.super.pickGroup(+_groupId).mute(+_targetId, _duration)
   }
 
   async setGroupAllMute (_groupId: string, _isBan: boolean): Promise<void> {
-    await this.super.setGroupWholeMute(+_groupId, _isBan)
+    await this.super.pickGroup(+_groupId).wholeMute(_isBan)
   }
 
   async setGroupAdmin (_groupId: string, _targetId: string, _isAdmin: boolean): Promise<void> {
-    await this.super.setGroupMemberAdmin(+_groupId, +_targetId, _isAdmin)
+    await this.super.pickGroup(+_groupId).setAdmin(+_targetId, _isAdmin)
   }
 
   async setGroupMemberCard (_groupId: string, _targetId: string, _card: string): Promise<void> {
-    await this.super.setGroupMemberCard(+_groupId, +_targetId, _card)
+    await this.super.pickGroup(+_groupId).setCard(+_targetId, _card)
   }
 
   async setGroupName (_groupId: string, _groupName: string): Promise<void> {
-    await this.super.setGroupName(+_groupId, _groupName)
+    await this.super.pickGroup(+_groupId).setName(_groupName)
   }
 
   async setGroupQuit (_groupId: string, _isDismiss: boolean): Promise<void> {
-    await this.super.quitGroup(+_groupId)
+    await this.super.pickGroup(+_groupId).quit()
   }
 
   async setGroupMemberTitle (_groupId: string, _targetId: string, _title: string): Promise<void> {
-    await this.super.setGroupMemberSpecialTitle(+_groupId, +_targetId, _title)
+    await this.super.pickGroup(+_groupId).setSpecialTitle(+_targetId, _title)
   }
 
   // async setGroupRemark (_groupId: string, _remark: string): Promise<boolean> {
@@ -224,7 +224,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   // }
 
   async getGroupInfo (_groupId: string, _noCache?: boolean): Promise<GroupInfo> {
-    const res = await this.super.getGroupInfo(+_groupId, _noCache)
+    const res = await this.super.pickGroup(+_groupId).getInfo(_noCache)
     return {
       groupId: res.group.group_id + '',
       groupName: res.group.group_name,
@@ -277,7 +277,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   }
 
   async getGroupMemberList (_groupId: string, _refresh?: boolean): Promise<Array<GroupMemberInfo>> {
-    const res = (await this.super.getGroupMemberList(+_groupId, _refresh)).members
+    const res = (await this.super.pickGroup(+_groupId).getMemberList(_refresh)).members
     const info: GroupMemberInfo[] = []
     for (const i of res) {
       info.push({
@@ -330,7 +330,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   }
 
   async setGroupHighlights (_groupId: string, _messageId: string, _create: boolean): Promise<void> {
-    await this.super.setGroupEssenceMessage(+_groupId, this.super.deserializeMsgId(_messageId).seq, _create)
+    await this.super.pickGroup(+_groupId).setEssenceMessage(this.super.deserializeMsgId(_messageId).seq, _create)
   }
 
   //   async getNotJoinedGroupInfo (_groupId: string): Promise<GroupInfo> {
@@ -358,7 +358,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   }
 
   async sendLike (_targetId: string, _count: number): Promise<void> {
-    await this.super.sendProfileLike(+_targetId, _count)
+    await this.super.pickFriend(+_targetId).like(_count)
   }
 
   async getAvatarUrl (_userId: string, _size?: 0 | 40 | 100 | 140): Promise<string> {
