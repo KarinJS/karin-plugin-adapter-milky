@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.0.3...v1.1.0) (2026-01-11)
+
+
+### Features
+
+* 重构逻辑，优化文件目录，适配milky1.1.0 close [#8](https://github.com/KarinJS/karin-plugin-adapter-milky/issues/8) ([a101d56](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/a101d56904c3cddf1aebd1e79015fdcb0547573b))
+
 ## [1.0.3](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.0.2...v1.0.3) (2025-12-02)
 
 
