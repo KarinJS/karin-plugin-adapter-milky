@@ -659,7 +659,7 @@ export class Client extends EventEmitter {
    * @returns
    */
   async moveGroupFile (groupId: number, fileId: string, folderId: string = '/', targetId: string = '/') {
-    return await this.request('/move_group_fil', { group_id: +groupId, file_id: fileId, parent_folder_id: folderId, target_folder_id: targetId })
+    return await this.request('/move_group_file', { group_id: +groupId, file_id: fileId, parent_folder_id: folderId, target_folder_id: targetId })
   }
 
   /**
