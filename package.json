@@ -9,6 +9,10 @@
     "karin-adapter"
   ],
   "description": "基于Karin的milky协议适配器",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KarinJS/karin-plugin-adapter-milky.git"
+  },
   "scripts": {
     "app": "node lib/app.js",
     "build": "tsup",
