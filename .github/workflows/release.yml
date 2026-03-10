@@ -25,6 +25,8 @@ jobs:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
         if: ${{ steps.release.outputs.release_created }}
+      - name: 更新NPM
+        run: npm update npm -g
       # 设置 pnpm
       - name: 设置 pnpm
         uses: pnpm/action-setup@v2
