@@ -26,7 +26,8 @@ jobs:
           registry-url: "https://registry.npmjs.org"
         if: ${{ steps.release.outputs.release_created }}
       - name: 更新NPM
-        run: npm update npm -g
+        run: npm install -g npm@latest
+        if: ${{ steps.release.outputs.release_created }}
       # 设置 pnpm
       - name: 设置 pnpm
         uses: pnpm/action-setup@v2
