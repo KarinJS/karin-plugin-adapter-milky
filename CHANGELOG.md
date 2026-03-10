@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.1...v1.1.2) (2026-03-10)
+
+
+### Bug Fixes
+
+* 1 ([202a561](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/202a5618a5e865d4243767ca10fc3bb119c4660e))
+
 ## [1.1.1](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.0...v1.1.1) (2026-03-10)
 
 
