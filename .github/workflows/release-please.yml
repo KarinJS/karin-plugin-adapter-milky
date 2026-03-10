@@ -28,8 +28,6 @@ jobs:
       # 设置 pnpm
       - name: 设置 pnpm
         uses: pnpm/action-setup@v2
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         with:
           version: 9
           run_install: true
@@ -41,5 +39,5 @@ jobs:
       - run: npm pkg delete devDependencies
         if: ${{ steps.release.outputs.release_created }}
       # 发布到 npm
-      - run: pnpm run pub
+      - run: npm publish --access public
         if: ${{ steps.release.outputs.release_created }}

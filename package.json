@@ -12,8 +12,7 @@
   "scripts": {
     "app": "node lib/app.js",
     "build": "tsup",
-    "dev": "cross-env EBV_FILE=\"development.env\" node --import tsx src/app.ts",
-    "pub": "npm publish --access public"
+    "dev": "cross-env EBV_FILE=\"development.env\" node --import tsx src/app.ts"
   },
   "main": "lib/index.js",
   "devDependencies": {
