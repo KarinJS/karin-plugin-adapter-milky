@@ -1,8 +1,6 @@
-import EventEmitter from 'events'
 import axios, { AxiosInstance } from 'node-karin/axios'
 import {
   CreateGroupFolderOutput,
-  Event,
   GetCookiesOutput,
   GetCSRFTokenOutput,
   GetForwardedMessagesOutput,
@@ -31,24 +29,9 @@ import {
   UploadGroupFileOutput,
   UploadPrivateFileOutput
 } from '@saltify/milky-types'
-import { BotCfg } from '@/config/types'
-import { Root } from '@/utils'
-import { WebHookHander } from '@/milky/connection/webhook/handler'
-import { UrlEnd } from '@/utils/utils'
-import { WebSocketHandle } from '@/milky/connection/websocket'
-import { SSEHandle } from '@/milky/connection/ServerSentEvents'
-import type { GroupApi } from '@/milky/api/group'
-import type { FriendApi } from '@/milky/api/friend'
-import { createGroupApi } from '@/milky/api/group'
-import { createFriendApi } from '@/milky/api/friend'
+import { MilkyAdapter } from './bot'
+import { ConvertAddress } from '@/utils'
 
-type EventMap = {
-  [K in Event['event_type']]: (data: Extract<Event, { event_type: K }>) => void
-} & {
-  system_error: (msg: unknown) => void
-  system_success: () => void
-  system_offline: (...args: any) => void
-}
 type ApiResponse<T = unknown> =
   | {
     status: 'ok'
@@ -62,111 +45,20 @@ type ApiResponse<T = unknown> =
   }
 
 /** 群聊与消息相关接口扩展 */
-export class Client extends EventEmitter {
+export class Client {
   #axios: AxiosInstance
-  /** 适配器信息 */
-  adapter: {
-    /** 适配器名称 */
-    name: string
-    /** 适配器版本 */
-    version: string
-  }
 
-  /** 账号信息 */
-  self: {
-    /** 账号id */
-    uin: number
-    /** 账号昵称 */
-    nickname: string
-    /** 连接协议 */
-    protocol: 'webhook' | 'sse' | 'websocket'
-    /** 事件链接 */
-    EventUrl: string
-    /** Api链接 */
-    ApiUrl: string
-    /** 连接时间 */
-    connectTime: number
-    /** 事件链接的鉴权Token */
-    token: string
-    /** 在线状态 */
-    online: boolean
-  }
-
-  #Clear: null | (() => void) = null
-
-  constructor (cfg: BotCfg) {
-    super()
-    const url = UrlEnd(cfg.url)
-    this.adapter = {
-      name: 'Milky',
-      version: Root.pluginVersion,
-    }
-    this.self = {
-      uin: 0,
-      nickname: 'Milky-Bot',
-      protocol: cfg.protocol,
-      EventUrl: cfg.protocol === 'sse'
-        ? url + '/event'
-        : cfg.protocol === 'websocket'
-          ? (() => { const urlObj = new URL(url); urlObj.protocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:'; return urlObj.toString() })()
-          : '',
-      ApiUrl: url + '/api',
-      connectTime: 0,
-      token: cfg.token,
-      online: false
-    }
+  constructor (bot: MilkyAdapter) {
+    const url = ConvertAddress(bot.adapter.address, 'http')
     const headers: any = {
       Accept: 'application/json',
       'Content-Type': 'application/json'
     }
-    if (cfg.token) headers.Authorization = `Bearer ${cfg.token}`
+    if (bot.adapter.secret) headers.Authorization = `Bearer ${bot.adapter.secret}`
     this.#axios = axios.create({
-      baseURL: this.self.ApiUrl,
+      baseURL: url + '/api',
       headers
     })
-  }
-
-  on<K extends keyof EventMap> (event: K, listener: EventMap[K]): this {
-    return super.on(event, listener)
-  }
-
-  emit<K extends keyof EventMap> (event: K, ...args: Parameters<EventMap[K]>) {
-    return super.emit(event, ...args)
-  }
-
-  async init () {
-    try {
-      const BotInfo = Object.assign(await this.getLoginInfo(), await this.getImplInfo())
-      if (!BotInfo.uin) throw new Error('获取登录信息失败')
-      this.self.uin = BotInfo.uin
-      this.self.nickname = BotInfo.nickname
-      if (this.self.protocol === 'webhook') {
-        WebHookHander.register(this)
-        this.#Clear = () => {
-          WebHookHander.clear(this.self.uin)
-        }
-      } else if (this.self.protocol === 'websocket') {
-        const ws = new WebSocketHandle(this)
-        ws.connect()
-        this.#Clear = () => {
-          ws.clear()
-        }
-      } else {
-        const sse = new SSEHandle(this)
-        sse.connect()
-        this.#Clear = () => {
-          sse.clear()
-        }
-      }
-      this.on('bot_offline', (data) => {
-        this.#Clear!()
-        this.emit('system_offline', data.data.reason)
-      })
-      this.on('system_offline', () => { this.self.online = false })
-      this.on('system_success', () => { this.self.online = true })
-    } catch (err) {
-      this.emit('system_error', err)
-    }
   }
 
   private async request<T> (path: string, data?: any) {
@@ -765,23 +657,4 @@ export class Client extends EventEmitter {
   serializeMsgId (scene: string, peerId: number, seq: number) {
     return `${scene}:${peerId}:${seq}`
   }
-
-  /**
-   * pickGroup 风格接口，返回一个空对象的 Proxy，并在其上暴露群相关 API。
-   * 支持 pickGroup(id).sendMsg(...)/pickGroup(id).getInfo(...)
-   */
-  pickGroup (groupId: number): GroupApi {
-    return createGroupApi(this, +groupId)
-  }
-
-  /**
-   * pickFriend 风格接口，返回绑定了 userId 的好友相关 API。
-   * 支持 pickFriend(id).sendMsg(...)/pickFriend(id).getInfo(...)
-   */
-  pickFriend (userId: number): FriendApi {
-    return createFriendApi(this, +userId)
-  }
 }
-
-export type { GroupApi } from '@/milky/api/group'
-export type { FriendApi } from '@/milky/api/friend'

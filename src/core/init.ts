@@ -1,10 +1,10 @@
 import { Cfg } from '@/config'
-import { AdapterMilky } from './bot'
+import { MilkyAdapter } from './bot'
 
 export function main () {
   Cfg.get.bots.forEach(v => {
     if (!v.protocol || !v.url) return false
-    new AdapterMilky(v).init()
+    new MilkyAdapter(v).init()
   })
 }
 main()

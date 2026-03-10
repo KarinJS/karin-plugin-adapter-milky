@@ -1,60 +1,53 @@
 import { BotCfg } from '@/config/types'
 import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
-import { Client } from '@/milky/Client'
-import { createMessage } from '@/event/message'
+import { Client } from '@/core/Client'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
+import { ConvertAddress, dir } from '@/utils'
+import { WebHookHander } from '@/connection/webhook/handler'
+import { WebSocketHandle } from '@/connection/websocket'
 
-export class AdapterMilky extends AdapterBase implements AdapterType {
+export class MilkyAdapter extends AdapterBase implements AdapterType {
   #init = false
   super: Client
+  cfg: BotCfg
   constructor (cfg: BotCfg) {
     super()
-    this.super = new Client(cfg)
+    this.cfg = cfg
     this.adapter = {
       index: 0,
-      name: this.super.adapter.name,
-      version: this.super.adapter.version,
+      name: 'Milky-Adapter',
+      version: dir.version,
       platform: 'qq',
       standard: 'other',
       protocol: 'other',
-      communication: this.super.self.protocol === 'sse' ? 'http' : this.super.self.protocol === 'websocket' ? 'webSocketClient' : 'other',
-      address: this.super.self.EventUrl,
-      connectTime: this.super.self.connectTime,
-      secret: this.super.self.token
+      communication: cfg.protocol === 'sse' || cfg.protocol === 'webhook' ? 'http' : cfg.protocol === 'websocket' || cfg.protocol === 'ws' ? 'webSocketClient' : 'other',
+      address: '',
+      connectTime: 0,
+      secret: cfg.token
     }
+    this.adapter.address = ConvertAddress(cfg.url, this.adapter.communication)
+    this.super = new Client(this)
   }
 
   async init () {
     if (this.#init) return
     this.#init = true
-    this.super.on('system_error', (event) => {
-      this.logger('error', '适配器 连接错误: ', event)
-    })
-    this.super.on('system_offline', (event) => {
-      this.logger('error', 'Bot下线: ', event)
-      if (karin.getBotByIndex(this.adapter.index)) unregisterBot('index', this.adapter.index)
-    })
-    this.super.once('system_success', () => {
-      const selfId = String(this.super.self.uin)
-      this.account = {
-        uin: selfId,
-        uid: selfId,
-        selfId,
-        name: this.super.self.nickname,
-        avatar: `https://q1.qlogo.cn/g?b=qq&s=0&nk=${selfId}`,
-        subId: {
-          guild: '',
-          channel: '',
-          user: ''
-        }
-      }
-      const index = registerBot(this.adapter.communication, this)
-      if (index) this.adapter.index = index
-    })
-    this.super.on('message_receive', async (event) => {
-      createMessage(event.data, this)
-    })
-    await this.super.init()
+    const info = await this.super.getLoginInfo()
+    if (!info) throw new Error('获取登录信息失败')
+    const selfId = String(info.uin)
+    this.account = {
+      uin: selfId,
+      uid: selfId,
+      selfId,
+      name: info.nickname,
+      avatar: `https://q1.qlogo.cn/g?b=qq&s=0&nk=${selfId}`,
+      subId: {}
+    }
+
+    if (this.cfg.protocol === 'sse') return WebHookHander.register(this)
+    if (this.adapter.communication === 'http') return false
+    if (this.adapter.communication === 'webSocketClient') return new WebSocketHandle(this).connect()
+    throw new Error('未知的通讯方式' + this.cfg.protocol)
   }
 
   get selfId (): string {
@@ -65,25 +58,38 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
     return this.account.name || ''
   }
 
+  /** 注册Bot,仅限适配器内部调用 */
+  __registerBot () {
+    const index = registerBot(this.adapter.communication, this)
+    if (index) this.adapter.index = index
+  }
+
+  /** 卸载Bot,仅限适配器内部调用 */
+  __unregisterBot () {
+    if (karin.getBotByIndex(this.adapter.index)) unregisterBot('index', this.adapter.index)
+    this.adapter.index = 0
+  }
+
   logger (level: 'info' | 'error' | 'trace' | 'debug' | 'mark' | 'warn' | 'fatal', ...args: any[]) {
     logger.bot(level, this.account.uid || this.account.uin, ...args)
   }
 
+  async sendApi (action: string, params: any) { }
   async sendMsg (contact: Contact, elements: Array<Elements>, _retryCount?: number): Promise<SendMsgResults> {
     const result: SendMsgResults = {
       messageId: '',
       time: 0,
       rawData: {},
       message_id: '',
-      messageTime: 0
+      messageTime: 0,
     }
     const msg = await KarinConvertAdapter(elements)
     let res
     if (contact.scene === 'group') {
-      res = await this.super.pickGroup(Number(contact.peer)).sendMsg(msg)
+      res = await this.super.sendGroupMessage(+contact.peer, msg)
     } else {
       if (contact.scene === 'friend') {
-        res = await this.super.pickFriend(Number(contact.peer)).sendMsg(msg)
+        res = await this.super.sendPrivateMessage(+contact.peer, msg)
       } else {
         throw new Error('不支持的操作')
       }
@@ -99,13 +105,13 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   // }
 
   async recallMsg (contact: Contact, messageId: string): Promise<void> {
-    const Id = Number(contact.peer)
+    const Id = +contact.peer
     const { seq } = this.super.deserializeMsgId(messageId)
     if (contact.scene === 'group') {
-      await this.super.pickGroup(Id).recall(seq)
+      await this.super.recallGroupMessage(Id, seq)
     } else {
       if (contact.scene === 'friend') {
-        await this.super.pickFriend(Id).recall(seq)
+        await this.super.recallPrivateMessage(Id, seq)
       }
     }
   }
@@ -181,39 +187,41 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   async setMsgReaction (contact: Contact, messageId: string, faceId: number | string, isSet: boolean): Promise<void> {
     if (contact.scene !== 'group') throw new Error('仅支持群聊设置表情回应')
     const seq = this.super.deserializeMsgId(messageId).seq
-    await this.super.pickGroup(+contact.peer).setMessageReaction(seq, faceId + '', isSet)
+    await this.super.setGroupMessageReaction(+contact.peer, seq, String(faceId), isSet)
   }
 
   async groupKickMember (_groupId: string, _targetId: string, _rejectAddRequest?: boolean, _kickReason?: string): Promise<void> {
-    await this.super.pickGroup(+_groupId).kick(+_targetId, _rejectAddRequest)
+    await this.super.kickGroupMember(+_groupId, +_targetId, _rejectAddRequest)
   }
 
   async setGroupMute (_groupId: string, _targetId: string, _duration: number): Promise<void> {
-    await this.super.pickGroup(+_groupId).mute(+_targetId, _duration)
+    await this.super.setGroupMemberMute(+_groupId, +_targetId, _duration)
   }
 
   async setGroupAllMute (_groupId: string, _isBan: boolean): Promise<void> {
-    await this.super.pickGroup(+_groupId).wholeMute(_isBan)
+    await this.super.setGroupWholeMute(+_groupId, _isBan)
   }
 
   async setGroupAdmin (_groupId: string, _targetId: string, _isAdmin: boolean): Promise<void> {
-    await this.super.pickGroup(+_groupId).setAdmin(+_targetId, _isAdmin)
+    await this.super.setGroupMemberAdmin(+_groupId, +_targetId, _isAdmin)
   }
 
   async setGroupMemberCard (_groupId: string, _targetId: string, _card: string): Promise<void> {
-    await this.super.pickGroup(+_groupId).setCard(+_targetId, _card)
+    await this.super.setGroupMemberCard(+_groupId, +_targetId, _card)
   }
 
   async setGroupName (_groupId: string, _groupName: string): Promise<void> {
-    await this.super.pickGroup(+_groupId).setName(_groupName)
+    await this.super.setGroupName(+_groupId, _groupName)
   }
 
   async setGroupQuit (_groupId: string, _isDismiss: boolean): Promise<void> {
-    await this.super.pickGroup(+_groupId).quit()
+    const info = await this.getGroupMemberInfo(_groupId, this.account.selfId)
+    if (['owner'].includes(info.role) && !_isDismiss) return
+    await this.super.quitGroup(+_groupId)
   }
 
   async setGroupMemberTitle (_groupId: string, _targetId: string, _title: string): Promise<void> {
-    await this.super.pickGroup(+_groupId).setSpecialTitle(+_targetId, _title)
+    await this.super.setGroupMemberSpecialTitle(+_groupId, +_targetId, _title)
   }
 
   // async setGroupRemark (_groupId: string, _remark: string): Promise<boolean> {
@@ -224,7 +232,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   // }
 
   async getGroupInfo (_groupId: string, _noCache?: boolean): Promise<GroupInfo> {
-    const res = await this.super.pickGroup(+_groupId).getInfo(_noCache)
+    const res = await this.super.getGroupInfo(+_groupId, _noCache)
     return {
       groupId: res.group.group_id + '',
       groupName: res.group.group_name,
@@ -277,7 +285,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   }
 
   async getGroupMemberList (_groupId: string, _refresh?: boolean): Promise<Array<GroupMemberInfo>> {
-    const res = (await this.super.pickGroup(+_groupId).getMemberList(_refresh)).members
+    const res = (await this.super.getGroupMemberList(+_groupId, _refresh)).members
     const info: GroupMemberInfo[] = []
     for (const i of res) {
       info.push({
@@ -330,7 +338,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   }
 
   async setGroupHighlights (_groupId: string, _messageId: string, _create: boolean): Promise<void> {
-    await this.super.pickGroup(+_groupId).setEssenceMessage(this.super.deserializeMsgId(_messageId).seq, _create)
+    await this.super.setGroupEssenceMessage(+_groupId, this.super.deserializeMsgId(_messageId).seq, _create)
   }
 
   //   async getNotJoinedGroupInfo (_groupId: string): Promise<GroupInfo> {
@@ -358,7 +366,7 @@ export class AdapterMilky extends AdapterBase implements AdapterType {
   }
 
   async sendLike (_targetId: string, _count: number): Promise<void> {
-    await this.super.pickFriend(+_targetId).like(_count)
+    await this.super.sendProfileLike(+_targetId, _count)
   }
 
   async getAvatarUrl (_userId: string, _size?: 0 | 40 | 100 | 140): Promise<string> {

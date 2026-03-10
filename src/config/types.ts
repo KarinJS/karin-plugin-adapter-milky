@@ -3,7 +3,7 @@ export interface ConfigType {
   bots: BotCfg[]
 }
 export interface BotCfg {
-  protocol: 'webhook' | 'sse' | 'websocket'
+  protocol: 'webhook' | 'sse' | 'websocket' | 'ws'
   url: string
   token: string
 }

@@ -1,6 +1,6 @@
 import { IncomingSegment, OutgoingSegment } from '@saltify/milky-types'
 import { Elements, segment } from 'node-karin'
-import { segment as Segment } from '@/milky/segment'
+import { segment as Segment } from '@/event/segment'
 
 /** milky 消息转 Karin */
 export async function AdapterConvertKarin (data: Array<IncomingSegment>): Promise<Array<Elements>> {
@@ -33,6 +33,12 @@ export async function AdapterConvertKarin (data: Array<IncomingSegment>): Promis
         break
       case 'xml':
         elements.push(segment.xml(i.data.xml_payload))
+        break
+      case 'market_face':
+        elements.push(segment.marketFace(i.data.emoji_package_id + ''))
+        break
+      case 'light_app':
+        elements.push(segment.json(JSON.stringify(i)))
         break
       default:
         elements.push(segment.text(JSON.stringify(i)))

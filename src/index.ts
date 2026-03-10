@@ -1,6 +1,6 @@
 import { logger } from 'node-karin'
-import '@/milky/connection/webhook/webhook'
+import '@/connection/webhook/webhook'
 import '@/core/init'
-import { AdapterName } from './utils'
+import { dir } from './utils'
 
-logger.info(`[${AdapterName}] 适配器初始化完成~`)
+logger.info(`[${dir.AdapterName}] 适配器初始化完成~`)

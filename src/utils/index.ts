@@ -1,2 +1,2 @@
-export * from './Root'
-export * from './other'
+export * from './dir'
+export * from './utils'

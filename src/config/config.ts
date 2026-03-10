@@ -1,9 +1,9 @@
 import fs from 'node:fs'
-import { existsSync, karinPathBase, logger, mkdirSync, requireFileSync } from 'node-karin'
+import { existsSync, logger, mkdirSync, requireFileSync } from 'node-karin'
 import path from 'path'
-import { AdapterName, Root } from '@/utils'
 import { ConfigType } from './types'
 import { RandomToken } from '@/utils/utils'
+import { dir } from '@/utils'
 
 class Config {
   /** 默认配置 */
@@ -15,7 +15,7 @@ class Config {
       webhookToken: '',
       bots: []
     }
-    this.CfgPath = path.join(karinPathBase, Root.pluginName, 'config', 'config.json')
+    this.CfgPath = path.join(dir.ConfigDir, 'config.json')
     this.init()
   }
 
@@ -36,7 +36,7 @@ class Config {
       const cfg = requireFileSync(this.CfgPath, { force: true }) as ConfigType
       return { ...this.defaultConfig, ...cfg }
     } catch (err) {
-      logger.error(`[${AdapterName}] 读取配置文件失败，已加载默认配置`, err)
+      logger.error(`[${dir.AdapterName}] 读取配置文件失败，已加载默认配置`, err)
       return this.defaultConfig
     }
   }
