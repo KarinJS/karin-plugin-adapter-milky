@@ -30,7 +30,6 @@ import {
   UploadPrivateFileOutput
 } from '@saltify/milky-types'
 import { MilkyAdapter } from './bot'
-import { ConvertAddress } from '@/utils'
 
 type ApiResponse<T = unknown> =
   | {
@@ -44,12 +43,11 @@ type ApiResponse<T = unknown> =
     message: string
   }
 
-/** 群聊与消息相关接口扩展 */
+/** 接口API */
 export class Client {
   #axios: AxiosInstance
 
-  constructor (bot: MilkyAdapter) {
-    const url = ConvertAddress(bot.adapter.address, 'http')
+  constructor (url: string, bot: MilkyAdapter) {
     const headers: any = {
       Accept: 'application/json',
       'Content-Type': 'application/json'
@@ -61,7 +59,7 @@ export class Client {
     })
   }
 
-  private async request<T> (path: string, data?: any) {
+  async request<T> (path: string, data?: any) {
     const res = await this.#axios.post<ApiResponse<T>>(path, data ?? {})
     if (res.data.status === 'failed') {
       throw new Error(res.data.message)

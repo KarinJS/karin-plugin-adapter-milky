@@ -2,21 +2,6 @@
 
 基于 [Milky 协议](https://milky.ntqqrev.org/) 的 Karin 适配器插件实现。
 
-## 📖 目录
-
-- [简介](#简介)
-- [安装](#安装)
-- [快速开始](#快速开始)
-- [配置说明](#配置说明)
-- [开发](#开发)
-
----
-
-## 简介
-
-本插件是 Karin 的 Milky 协议适配器，使 Karin 能够连接到支持 Milky 协议的 QQ 机器人后端
----
-
 ## 安装
 
 在 Karin 项目根目录下执行：
@@ -41,25 +26,32 @@ pnpm add @karinjs/plugin-adapter-milky -w
 
 ```json
 {
-  "webhookToken": "Fvuo0TRH", // 暂时不支持
+  "webhookToken": "Fvuo0TRH",
   "bots": [
     {
-      "protocol": "websocket", //通讯协议支持websocket webhook sse
-      "url": "https://example.com", // 协议端地址
-      "token": "abcd" // 协议端密钥，将用于API请求跟websocket sse事件连接使用
+      "protocol": "websocket",
+      "url": "https://example.com",
+      "token": "abcd"
     }
   ]
 }
 ```
 
-4. **重启 Karin**
-   配置修改后重启，适配器会自动连接并注册 Bot
+## 配置项说明 (注: 修改配置文件后需要重启才能生效)
 
----
+`webhookToken`
+WebHook的鉴权密钥，设置后会验证请求头的Authorization字段
 
-## 开发
+`protocol`
+连接协议，支持 `websocket`,`sse`和`webhook`
 
-### 本地开发
+`url`
+接口请求地址,必须以 `http://` 或 `https://` 开头的链接，例如 `http://127.0.0.1:8080`
+
+`token`
+接口的鉴权密钥，将用于连接Bot并请求接口
+
+## 本地开发
 
 ```bash
 # 克隆仓库
@@ -83,8 +75,8 @@ pnpm build
 
 - [Milky 协议文档](https://milky.ntqqrev.org/)
 - [Milky GitHub](https://github.com/SaltifyDev/milky)
-- [Karin 文档](https://github.com/KarinJS/Karin)
-- [Karin OneBot 适配器](https://github.com/KarinJS/Karin/tree/main/packages/onebot)
+- [Karin 文档](https://karinjs.com)
+- [Karin](https://github.com/KarinJS/Karin)
 
 ---
 

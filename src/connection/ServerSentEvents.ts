@@ -1,11 +1,14 @@
 import { MilkyAdapter } from '@/core/bot'
 import { EventDispatch } from '@/event'
+import { Event } from '@saltify/milky-types'
+import { EventSource } from 'eventsource'
 import karin from 'node-karin'
-import WebSocket from 'ws'
 
-export class WebSocketHandle {
+export class SSEClient {
+  /** 首次连接时间 */
   #startTime = 0
-  #wss: null | WebSocket = null
+  /** sse实例 */
+  #client: null | EventSource = null
   /** 适配器实例 */
   bot: MilkyAdapter
   /** 重试最大次数 */
@@ -19,10 +22,14 @@ export class WebSocketHandle {
   }
 
   connect () {
-    this.#wss = new WebSocket(this.bot.adapter.address, {
-      headers: { authorization: `Bearer ${this.bot.adapter.secret}` }
+    let url = this.bot.adapter.address
+    if (this.bot.adapter.secret) url += `?access_token=${this.bot.adapter.secret}`
+    this.#client = new EventSource(url)
+    this.#client.addEventListener('milky_event', (event) => {
+      const data = JSON.parse(event.data) as Event
+      EventDispatch(data, this.bot)
     })
-    this.#wss.on('open', () => {
+    this.#client.onopen = () => {
       this.#reconnectCount = 0
       if (this.#IntervalTime) clearInterval(this.#IntervalTime)
       this.#startTime = Date.now()
@@ -31,36 +38,28 @@ export class WebSocketHandle {
         this.bot.adapter.connectTime = time - this.#startTime
       }, 10000)
       this.bot.__registerBot()
-    })
-
-    this.#wss.on('message', (event: string) => {
-      const data = JSON.parse(event)
-      EventDispatch(data, this.bot)
-    })
-    this.#wss.on('error', (err) => {
-      this.bot.logger('error', `WebSocket 连接错误: ${err.message}`)
-    })
-    this.#wss.on('close', (code, reason) => {
+    }
+    this.#client.onerror = (error) => {
+      this.bot.logger('error', `SSE连接错误:${JSON.stringify(error)}`)
       const index = this.bot.adapter.index
       if (index) {
         const bot = karin.getBot(index)
         if (bot) {
-          this.bot.logger('error', `WebSocket 断开连接 状态码:${code} ${reason}`)
           this.bot.__unregisterBot()
         }
       }
       this.clear()
       this.reconnect()
-    })
+    }
   }
 
   reconnect () {
     if (this.#reconnectCount >= this.#reconnectMaxCount) {
-      this.bot.logger('error', '[WebSocket]重连已达最大次数,停止重连')
+      this.bot.logger('error', '[SSE]重连已达最大次数,停止重连')
       return false
     }
     this.#reconnectCount++
-    this.bot.logger('error', `[WebSocket]尝试第${this.#reconnectCount}次重连`)
+    this.bot.logger('error', `[SSE]尝试第${this.#reconnectCount}次重连`)
     setTimeout(() => {
       this.connect()
     }, 5000)
@@ -71,10 +70,9 @@ export class WebSocketHandle {
       clearInterval(this.#IntervalTime)
       this.#IntervalTime = null
     }
-    if (this.#wss) {
-      this.#wss.close()
-      this.#wss.removeAllListeners()
-      this.#wss = null
+    if (this.#client) {
+      this.#client.close()
+      this.#client = null
     }
   }
 }

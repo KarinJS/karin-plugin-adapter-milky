@@ -2,9 +2,10 @@ import { BotCfg } from '@/config/types'
 import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
 import { Client } from '@/core/Client'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
-import { ConvertAddress, dir } from '@/utils'
+import { dir, UrlEnd } from '@/utils'
 import { WebHookHander } from '@/connection/webhook/handler'
 import { WebSocketHandle } from '@/connection/websocket'
+import { SSEClient } from '@/connection/ServerSentEvents'
 
 export class MilkyAdapter extends AdapterBase implements AdapterType {
   #init = false
@@ -21,12 +22,11 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       standard: 'other',
       protocol: 'other',
       communication: cfg.protocol === 'sse' || cfg.protocol === 'webhook' ? 'http' : cfg.protocol === 'websocket' || cfg.protocol === 'ws' ? 'webSocketClient' : 'other',
-      address: '',
+      address: UrlEnd(cfg.url),
       connectTime: 0,
       secret: cfg.token
     }
-    this.adapter.address = ConvertAddress(cfg.url, this.adapter.communication)
-    this.super = new Client(this)
+    this.super = new Client(this.adapter.address, this)
   }
 
   async init () {
@@ -43,15 +43,20 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       avatar: `https://q1.qlogo.cn/g?b=qq&s=0&nk=${selfId}`,
       subId: {}
     }
-
-    if (this.cfg.protocol === 'sse') return WebHookHander.register(this)
-    if (this.adapter.communication === 'http') return false
-    if (this.adapter.communication === 'webSocketClient') return new WebSocketHandle(this).connect()
-    throw new Error('未知的通讯方式' + this.cfg.protocol)
+    this.adapter.address += '/event'
+    if (this.cfg.protocol === 'webhook') return WebHookHander.register(this)
+    if (this.cfg.protocol === 'sse') return new SSEClient(this).connect()
+    if (this.cfg.protocol === 'websocket' || this.cfg.protocol === 'ws') {
+      const url = new URL(this.adapter.address)
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      this.adapter.address = url.toString()
+      return new WebSocketHandle(this).connect()
+    }
+    return this.logger('error', '未知的通讯方式' + this.cfg.protocol)
   }
 
   get selfId (): string {
-    return this.account.selfId || this.account.uin || this.account.uid
+    return this.account.selfId
   }
 
   get selfName (): string {
@@ -71,10 +76,13 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   }
 
   logger (level: 'info' | 'error' | 'trace' | 'debug' | 'mark' | 'warn' | 'fatal', ...args: any[]) {
-    logger.bot(level, this.account.uid || this.account.uin, ...args)
+    logger.bot(level, this.account.selfId, ...args)
   }
 
-  async sendApi (action: string, params: any) { }
+  async sendApi (action: string, params: any) {
+    return this.super.request(action, params)
+  }
+
   async sendMsg (contact: Contact, elements: Array<Elements>, _retryCount?: number): Promise<SendMsgResults> {
     const result: SendMsgResults = {
       messageId: '',

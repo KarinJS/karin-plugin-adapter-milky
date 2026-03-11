@@ -10,12 +10,15 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const token = Cfg.get.webhookToken || ''
   if (!token) return next()
   const accessToken = req.headers.authorization
-  if (!accessToken || accessToken !== `Bearer ${token}`) return res.status(403).json({ error: '无权限', message: '鉴权密钥错误' })
+  if (!accessToken || accessToken !== `Bearer ${token}`) {
+    logger.debug('未授权的客户端请求:', req.body)
+    return res.status(404).json({ error: '无权限', message: '鉴权密钥错误' })
+  }
   return next()
 }
 router.use(express.json())
-router.post('/webhook', authMiddleware, (req, _res) => {
-  WebHookHander.handle(req.body)
+router.post('/webhook', authMiddleware, (req, res) => {
+  WebHookHander.handle(req, res)
 })
 router.get('/webhook', (_req, res) => res.json({
   name: 'Milky-adapter',
