@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.8](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.7...v1.1.8) (2026-03-13)
+
+
+### Bug Fixes
+
+* 优化消息id逻辑，修复回复消息id异常的问题 ([ab1dfc9](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/ab1dfc94f3313f413ff31db36531e96d403a5efa))
+
 ## [1.1.7](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.6...v1.1.7) (2026-03-11)
 
 
