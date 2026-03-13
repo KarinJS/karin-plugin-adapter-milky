@@ -1,9 +1,11 @@
-import { IncomingSegment, OutgoingSegment } from '@saltify/milky-types'
+import { IncomingMessage, OutgoingSegment } from '@saltify/milky-types'
 import { Elements, segment } from 'node-karin'
 import { segment as Segment } from '@/event/segment'
+import { MilkyAdapter } from '@/core/bot'
 
 /** milky 消息转 Karin */
-export async function AdapterConvertKarin (data: Array<IncomingSegment>): Promise<Array<Elements>> {
+export async function AdapterConvertKarin (event: IncomingMessage, bot: MilkyAdapter): Promise<Array<Elements>> {
+  const data = event.segments
   const elements = []
   for (const i of data) {
     switch (i.type) {
@@ -26,7 +28,7 @@ export async function AdapterConvertKarin (data: Array<IncomingSegment>): Promis
         elements.push(segment.record(i.data.temp_url))
         break
       case 'reply':
-        elements.push(segment.reply(String(i.data.message_seq)))
+        elements.push(segment.reply(bot.super.encodeMsgId(event.message_scene, event.peer_id, i.data.message_seq)))
         break
       case 'video':
         elements.push(segment.video(i.data.temp_url, { width: i.data.width, height: i.data.height }))

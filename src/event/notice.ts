@@ -4,7 +4,7 @@ import { contactFriend, contactGroup, createGroupAdminChangedNotice, createGroup
 
 export function RecallNotice (event: Extract<Event, { event_type: 'message_recall' }>, bot: MilkyAdapter) {
   const data = event.data
-  const messageId = bot.super.serializeMsgId(data.message_scene, data.peer_id, data.message_seq)
+  const messageId = bot.super.encodeMsgId(data.message_scene, data.peer_id, data.message_seq)
   if (data.message_scene === 'friend') {
     const contact = contactFriend(data.peer_id + '')
     const sender = senderFriend(data.operator_id + '')
@@ -156,7 +156,7 @@ export function GroupMessageReaction (event: Extract<Event, { event_type: 'group
       count: 1,
       faceId: +event.data.face_id,
       isSet: event.data.is_add,
-      messageId: bot.super.serializeMsgId('group', +contact.peer, event.data.message_seq)
+      messageId: bot.super.encodeMsgId('group', +contact.peer, event.data.message_seq)
     }
   })
 }

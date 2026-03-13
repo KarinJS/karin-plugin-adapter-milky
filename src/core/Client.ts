@@ -627,32 +627,62 @@ export class Client {
     return await this.request<GetPrivateFileDownloadUrlOutput>('/get_private_file_download_url', { user_id: +userId, file_id: fileId, file_hash: fileHash })
   }
 
-  /**
-   * 解析消息ID
-   * @param msgId 消息ID
-   * @returns
-   */
-  deserializeMsgId (msgId: string): {
-    scene: 'friend' | 'group' | 'temp'
-    peerId: number
-    seq: number
-  } {
-    const [scene, peerId, seq] = msgId.split(':') as any
-    return {
-      scene,
-      peerId: +peerId,
-      seq: +seq
+  encodeVarint (value: number) {
+    if (value < 0) throw new Error('value不可为负')
+    const bytes: number[] = []
+    while (value > 127) {
+      bytes.push((value & 127) | 128)
+      value >>>= 7
     }
+    bytes.push(value)
+    return bytes
+  }
+
+  decodeVarint (buffer: Buffer | Uint8Array, offset: { index: number }) {
+    let result = 0
+    let shift = 0
+    while (true) {
+      if (offset.index >= buffer.length) throw new Error('数据不正确')
+      const byte = buffer[offset.index++]
+      result |= (byte & 127) << shift
+      if ((byte & 128) === 0) break
+      shift += 7
+      if (shift > 35) throw new Error('数据过大')
+    }
+    return result
   }
 
   /**
-   * 组合消息Id
-   * @param scene 消息场景
-   * @param peerId 发送者id
-   * @param seq 消息序列号
-   * @returns
+   * 生成MsgId
+   * @param scene 场景
+   * @param peerId 群号或者好友ID
+   * @param seq 消息Seq
    */
-  serializeMsgId (scene: string, peerId: number, seq: number) {
-    return `${scene}:${peerId}:${seq}`
+  encodeMsgId (scene: 'group' | 'friend' | 'temp', peerId: number, seq: number) {
+    const sceneId = scene === 'group' ? 0 : scene === 'friend' ? 1 : 2
+    const bytes = [
+      ...this.encodeVarint(sceneId),
+      ...this.encodeVarint(peerId),
+      ...this.encodeVarint(seq)
+    ]
+    return Buffer
+      .from(bytes)
+      .toString('base64')
+      .replace(/=+$/, '')
+  }
+
+  decodeMsgId (msgid: string) {
+    msgid += '==='.slice((msgid.length + 3) % 4)
+    const buffer = Buffer.from(msgid, 'base64')
+    const offset = { index: 0 }
+    const sceneId = this.decodeVarint(buffer, offset)
+    const scene = (sceneId === 0 ? 'group' : sceneId === 1 ? 'friend' : 'temp') as 'group' | 'friend' | 'temp'
+    const peerId = this.decodeVarint(buffer, offset)
+    const seq = this.decodeVarint(buffer, offset)
+    return {
+      scene,
+      peerId,
+      seq
+    }
   }
 }

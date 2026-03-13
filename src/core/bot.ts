@@ -102,7 +102,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
         throw new Error('不支持的操作')
       }
     }
-    result.messageId = this.super.serializeMsgId(contact.scene, +contact.peer, res.message_seq)
+    result.messageId = this.super.encodeMsgId(contact.scene, +contact.peer, res.message_seq)
     result.time = res.time
     result.rawData = res
     return result
@@ -114,7 +114,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
 
   async recallMsg (contact: Contact, messageId: string): Promise<void> {
     const Id = +contact.peer
-    const { seq } = this.super.deserializeMsgId(messageId)
+    const { seq } = this.super.decodeMsgId(messageId)
     if (contact.scene === 'group') {
       await this.super.recallGroupMessage(Id, seq)
     } else {
@@ -125,16 +125,15 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   }
 
   async getMsg (Contact: Contact | string, messageId?: string): Promise<MessageResponse> {
-    let peerId: number | string, scene: 'friend' | 'group' | 'temp', seq
+    let peerId: number | string, scene: 'group' | 'friend' | 'temp', seq
     if (typeof Contact === 'string') {
-      ({ scene, peerId, seq } = this.super.deserializeMsgId(Contact))
-      messageId = seq + ''
+      ({ scene, peerId, seq } = this.super.decodeMsgId(Contact))
     } else {
       scene = Contact.scene === 'friend' ? 'friend' : Contact.scene === 'group' ? 'group' : 'temp'
-      peerId = Contact.peer
-      messageId = this.super.deserializeMsgId(messageId!).seq + ''
+      peerId = Contact.peer;
+      ({ seq } = this.super.decodeMsgId(messageId!))
     }
-    const { message } = await this.super.getMessage(scene, Number(peerId), Number(messageId))
+    const { message } = await this.super.getMessage(scene, +peerId, seq)
     const userId = String(message.sender_id)
     const nickname = message.message_scene === 'friend' ? message.friend.nickname : message.message_scene === 'group' ? message.group_member.nickname : ''
     const contact = message.message_scene === 'friend'
@@ -144,7 +143,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
         : contactGroupTemp(String(message.group?.group_id), String(message.sender_id))
     return {
       time: message.time,
-      messageId: this.super.serializeMsgId(message.message_scene, message.peer_id, message.message_seq),
+      messageId: this.super.encodeMsgId(message.message_scene, message.peer_id, message.message_seq),
       messageSeq: message.message_seq,
       contact,
       sender: {
@@ -153,12 +152,12 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
         nick: nickname,
         name: nickname
       },
-      elements: await AdapterConvertKarin(message.segments)
+      elements: await AdapterConvertKarin(message, this)
     }
   }
 
   async getHistoryMsg (contact: Contact, startMsgSeq: string | number, count: number): Promise<MessageResponse[]> {
-    const MsgId = typeof startMsgSeq === 'string' ? this.super.deserializeMsgId(startMsgSeq).seq : startMsgSeq
+    const MsgId = typeof startMsgSeq === 'string' ? this.super.decodeMsgId(startMsgSeq).seq : startMsgSeq
     const scene = contact.scene === 'friend' ? 'friend' : contact.scene === 'group' ? 'group' : 'temp'
     const result = (await this.super.getHistoryMessage(scene, +contact.peer, MsgId, count)).messages
     const elements: MessageResponse[] = []
@@ -167,7 +166,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       const nickname = i.message_scene === 'friend' ? i.friend.nickname : i.message_scene === 'group' ? i.group_member.nickname : ''
       elements.push({
         time: i.time,
-        messageId: this.super.serializeMsgId(i.message_scene, i.peer_id, i.message_seq),
+        messageId: this.super.encodeMsgId(i.message_scene, i.peer_id, i.message_seq),
         messageSeq: i.message_seq,
         contact: i.message_scene === 'friend'
           ? contactFriend(String(i.friend.user_id), i.friend.nickname)
@@ -180,7 +179,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
           nick: nickname,
           name: nickname
         },
-        elements: await AdapterConvertKarin(i.segments)
+        elements: await AdapterConvertKarin(i, this)
       })
     }
     return elements
@@ -194,7 +193,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
 
   async setMsgReaction (contact: Contact, messageId: string, faceId: number | string, isSet: boolean): Promise<void> {
     if (contact.scene !== 'group') throw new Error('仅支持群聊设置表情回应')
-    const seq = this.super.deserializeMsgId(messageId).seq
+    const seq = this.super.decodeMsgId(messageId).seq
     await this.super.setGroupMessageReaction(+contact.peer, seq, String(faceId), isSet)
   }
 
@@ -337,7 +336,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
         operatorName: i.operator_name,
         operationTime: i.operation_time,
         messageTime: i.message_time,
-        messageId: this.super.serializeMsgId('group', i.sender_id, i.message_seq),
+        messageId: this.super.encodeMsgId('group', i.sender_id, i.message_seq),
         messageSeq: i.message_seq,
         jsonElements: JSON.stringify(i.segments)
       })
@@ -346,7 +345,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   }
 
   async setGroupHighlights (_groupId: string, _messageId: string, _create: boolean): Promise<void> {
-    await this.super.setGroupEssenceMessage(+_groupId, this.super.deserializeMsgId(_messageId).seq, _create)
+    await this.super.setGroupEssenceMessage(+_groupId, this.super.decodeMsgId(_messageId).seq, _create)
   }
 
   //   async getNotJoinedGroupInfo (_groupId: string): Promise<GroupInfo> {
