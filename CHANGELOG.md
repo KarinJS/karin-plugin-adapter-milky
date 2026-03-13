@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.7](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.6...v1.1.7) (2026-03-11)
+
+
+### Bug Fixes
+
+* 修复sse无法使用的问题 ([a15dc85](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/a15dc853e9b80b326c5c2ac6b93e295cde84676c))
+* 完善事件 ([76b28b5](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/76b28b503f2eccf4f4f01d1fa0f9ef1203db5b58))
+
 ## [1.1.6](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.5...v1.1.6) (2026-03-10)
 
 
