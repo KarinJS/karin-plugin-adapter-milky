@@ -1,4 +1,5 @@
 import { OutgoingSegment } from '@saltify/milky-types'
+import { NodeElement } from 'node-karin'
 
 type Segment<T> = Extract<OutgoingSegment, { type: T }>
 interface ImageOptions {
@@ -68,4 +69,14 @@ export const segment = {
   video (uri: string): Segment<'video'> {
     return { type: 'video', data: { uri } }
   },
+
+  node (elements: NodeElement): Segment<'forward'> {
+    const msgs: Segment<'forward'> = {
+      type: 'forward',
+      data: {
+        messages: []
+      }
+    }
+    return msgs
+  }
 }

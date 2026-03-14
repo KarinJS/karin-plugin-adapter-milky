@@ -3,6 +3,7 @@ import {
   CreateGroupFolderOutput,
   GetCookiesOutput,
   GetCSRFTokenOutput,
+  GetCustomFaceUrlListOutput,
   GetForwardedMessagesOutput,
   GetFriendInfoOutput,
   GetFriendListOutput,
@@ -104,20 +105,20 @@ export class Client {
   }
 
   /**
+   * 获取群列表
+   * @param [noCache=false] 是否强制不使用缓存
+   */
+  async getGroupList (noCache: boolean = false) {
+    return await this.request<GetGroupListOutput>('/get_group_list', { no_cache: noCache })
+  }
+
+  /**
    * 获取群信息
    * @param groupId 群号
    * @param [noCache=false] 是否强制不使用缓存
    */
   async getGroupInfo (groupId: number, noCache: boolean = false) {
     return await this.request<GetGroupInfoOutput>('/get_group_info', { group_id: +groupId, no_cache: noCache })
-  }
-
-  /**
-   * 获取群列表
-   * @param [noCache=false] 是否强制不使用缓存
-   */
-  async getGroupList (noCache: boolean = false) {
-    return await this.request<GetGroupListOutput>('/get_group_list', { no_cache: noCache })
   }
 
   /**
@@ -137,6 +138,37 @@ export class Client {
    */
   async getGroupMemberInfo (groupId: number, userId: number, noCache: boolean = false) {
     return await this.request<GetGroupMemberInfoOutput>('/get_group_member_info', { group_id: +groupId, user_id: +userId, no_cache: noCache })
+  }
+
+  /**
+   * 设置 QQ 账号头像
+   * @param uri 头像文件 URI，支持 file:// http(s):// base64:// 三种格式
+   */
+  async setAvatar (uri: string) {
+    return await this.request('/set_avatar', { uri })
+  }
+
+  /**
+   * 设置 QQ 账号昵称
+   * @param name 新昵称
+   */
+  async setNickName (name: string) {
+    return await this.request('/set_nickname', { new_nickname: name })
+  }
+
+  /**
+   * 设置 QQ 账号个性签名
+   * @param bio 新个性签名
+   */
+  async setBio (bio: string) {
+    return await this.request('/set_bio', { new_bio: bio })
+  }
+
+  /**
+   * 获取自定义表情 URL 列表
+   */
+  async getCustomFaceUrlList () {
+    return await this.request<GetCustomFaceUrlListOutput>('/get_custom_face_url_list', {})
   }
 
   /**
@@ -251,6 +283,10 @@ export class Client {
    */
   async sendProfileLike (userId: number, count: number = 1) {
     return await this.request('/send_profile_like', { user_id: +userId, count })
+  }
+
+  async deleteFriend (userId: number) {
+    return await this.request('/delete_friend', { user_id: +userId })
   }
 
   /**
@@ -509,6 +545,17 @@ export class Client {
   }
 
   /**
+   * 上传私聊文件
+   * @param userId 好友 QQ 号
+   * @param fileUri 文件 URI，支持 `file://` `http(s)://` `base64://` 三种格式
+   * @param fileName 文件名称
+   * @returns
+   */
+  async uploadPrivateFile (userId: number, fileUri: string, fileName: string) {
+    return await this.request<UploadPrivateFileOutput>('/upload_private_file', { user_id: +userId, file_uri: fileUri, file_name: fileName })
+  }
+
+  /**
    * 上传群文件
    * @param groupId 群号
    * @param folderId 目标文件夹 ID
@@ -518,6 +565,17 @@ export class Client {
    */
   async uploadGroupFile (groupId: number, folderId: string = '/', fileUri: string, fileName: string) {
     return await this.request<UploadGroupFileOutput>('/upload_group_file', { group_id: +groupId, parent_folder_id: folderId, file_uri: fileUri, file_name: fileName })
+  }
+
+  /**
+   * 获取私聊文件下载链接
+   * @param userId 好友 QQ 号
+   * @param fileId 文件 ID
+   * @param fileHash 文件的 TriSHA1 哈希值
+   * @returns
+   */
+  async getPrivateFileDownloadUrl (userId: string, fileId: string, fileHash: string) {
+    return await this.request<GetPrivateFileDownloadUrlOutput>('/get_private_file_download_url', { user_id: +userId, file_id: fileId, file_hash: fileHash })
   }
 
   /**
@@ -605,28 +663,6 @@ export class Client {
     return await this.request('/delete_group_folder', { group_id: +groupId, folder_id: folderId })
   }
 
-  /**
-   * 上传私聊文件
-   * @param userId 好友 QQ 号
-   * @param fileUri 文件 URI，支持 `file://` `http(s)://` `base64://` 三种格式
-   * @param fileName 文件名称
-   * @returns
-   */
-  async uploadPrivateFile (userId: number, fileUri: string, fileName: string) {
-    return await this.request<UploadPrivateFileOutput>('/upload_private_file', { user_id: +userId, file_uri: fileUri, file_name: fileName })
-  }
-
-  /**
-   * 获取私聊文件下载链接
-   * @param userId 好友 QQ 号
-   * @param fileId 文件 ID
-   * @param fileHash 文件的 TriSHA1 哈希值
-   * @returns
-   */
-  async getPrivateFileDownloadUrl (userId: string, fileId: string, fileHash: string) {
-    return await this.request<GetPrivateFileDownloadUrlOutput>('/get_private_file_download_url', { user_id: +userId, file_id: fileId, file_hash: fileHash })
-  }
-
   encodeVarint (value: number) {
     if (value < 0) throw new Error('value不可为负')
     const bytes: number[] = []
@@ -660,6 +696,7 @@ export class Client {
    */
   encodeMsgId (scene: 'group' | 'friend' | 'temp', peerId: number, seq: number) {
     const sceneId = scene === 'group' ? 0 : scene === 'friend' ? 1 : 2
+
     const bytes = [
       ...this.encodeVarint(sceneId),
       ...this.encodeVarint(peerId),

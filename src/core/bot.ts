@@ -1,5 +1,5 @@
 import { BotCfg } from '@/config/types'
-import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, Elements, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, registerBot, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
+import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, ForwardOptions, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, NodeElement, registerBot, SendElement, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
 import { Client } from '@/core/Client'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
 import { dir, UrlEnd } from '@/utils'
@@ -83,7 +83,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     return this.super.request(action, params)
   }
 
-  async sendMsg (contact: Contact, elements: Array<Elements>, _retryCount?: number): Promise<SendMsgResults> {
+  async sendMsg (contact: Contact, elements: Array<SendElement>, _retryCount?: number): Promise<SendMsgResults> {
     const result: SendMsgResults = {
       messageId: '',
       time: 0,
@@ -108,9 +108,10 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     return result
   }
 
-  // async sendForwardMsg (_contact: Contact, _elements: Array<NodeElement>, _options?: ForwardOptions): Promise<{ messageId: string; forwardId: string }> {
-
-  // }
+  async sendForwardMsg (_contact: Contact, _elements: Array<NodeElement>, _options?: ForwardOptions) {
+    const info = await this.sendMsg(_contact, _elements)
+    return { messageId: info.messageId, forwardId: info.messageId }
+  }
 
   async recallMsg (contact: Contact, messageId: string): Promise<void> {
     const Id = +contact.peer
