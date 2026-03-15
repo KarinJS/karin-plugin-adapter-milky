@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.9](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.8...v1.1.9) (2026-03-15)
+
+
+### Bug Fixes
+
+* 完善合并转发，同意拒绝请求接口 ([f778ad7](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/f778ad75946d5af5b25c28cdd15e7ba696e10d60))
+* 完善接口 ([2a113a3](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/2a113a36e751e4cb417240516f4c42c2c6abffca))
+* 完善接口 ([593a780](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/593a7801ecff4586d0fb40e097ba601f46770714))
+
 ## [1.1.8](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.7...v1.1.8) (2026-03-13)
 
 
