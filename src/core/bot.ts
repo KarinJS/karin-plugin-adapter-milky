@@ -6,6 +6,7 @@ import { dir, UrlEnd } from '@/utils'
 import { WebHookHander } from '@/connection/webhook/handler'
 import { WebSocketHandle } from '@/connection/websocket'
 import { SSEClient } from '@/connection/ServerSentEvents'
+import { segment } from '@/event/segment'
 
 export class MilkyAdapter extends AdapterBase implements AdapterType {
   #init = false
@@ -109,8 +110,26 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   }
 
   async sendForwardMsg (_contact: Contact, _elements: Array<NodeElement>, _options?: ForwardOptions) {
-    const info = await this.sendMsg(_contact, _elements)
-    return { messageId: info.messageId, forwardId: info.messageId }
+    const userId = +this.account.selfId
+    const NickName = this.account.name
+    const messages = []
+    for (const v of _elements) {
+      const userid = v.subType === 'fake' ? +v.userId : userId
+      const nickname = v.subType === 'fake' ? v.nickname : NickName
+      const content = v.subType === 'fake' ? v.message : (await this.getForwardMsg(v.messageId))[0].elements
+      const message = await KarinConvertAdapter(content)
+      messages.push(segment.fake(userid, message, nickname))
+    }
+    const data = segment.node(messages)
+    const result = { messageId: '', forwardId: '' }
+    if (_contact.scene === 'friend') {
+      const res = await this.super.sendPrivateMessage(+_contact.peer, data)
+      result.messageId = this.super.encodeMsgId('friend', +_contact.peer, res.message_seq)
+    } else {
+      const res = await this.super.sendGroupMessage(+_contact.peer, data)
+      result.messageId = this.super.encodeMsgId('group', +_contact.peer, res.message_seq)
+    }
+    return result
   }
 
   async recallMsg (contact: Contact, messageId: string): Promise<void> {
@@ -187,6 +206,10 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   }
 
   // async getForwardMsg (_resId: string): Promise<Array<MessageResponse>> {
+  //   const info = await this.super.getForwardedMessage(_resId)
+  //   return info.messages.map(v => ({
+  //     time: v.time,
+  //   }))
   // }
 
   // async createResId (_contact: Contact, _elements: Array<NodeElement>): Promise<string> {
@@ -349,8 +372,8 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     await this.super.setGroupEssenceMessage(+_groupId, this.super.decodeMsgId(_messageId).seq, _create)
   }
 
-  //   async getNotJoinedGroupInfo (_groupId: string): Promise<GroupInfo> {
-  //   }
+  // async getNotJoinedGroupInfo (_groupId: string): Promise<GroupInfo> {
+  // }
 
   // async getAtAllCount (_groupId: string): Promise<GetAtAllCountResponse> {
   // }
@@ -385,35 +408,65 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     return `https://p.qlogo.cn/gh/${_groupId}/${_groupId}/${_size}`
   }
 
-  // async pokeUser (_contact: Contact, _count?: number): Promise<boolean> {
-  //   for (let i = 0; i < (_count || 1); i++) {
-  //     const Id = +_contact.peer
-  //     if (_contact.scene === 'friend') {
-  //       await this.super.sendFriendNudge(Id, Id === +this.selfId)
-  //       return true
-  //     } else {
-  //       if (_contact.scene === 'group') {
-  //         await this.super.sendGroupNudge(Id, +_contact.subPeer)
-  //         return true
-  //       }
-  //     }
-  //   }
-  // }
-
-  async setFriendApplyResult (_requestId: string, _isApprove: boolean, _remark?: string): Promise<void> {
-    _isApprove
-      ? await this.super.acceptFriendRequest(_requestId)
-      : await this.super.rejectFriendRequest(_requestId)
+  async pokeUser (_contact: Contact, _targetId: string, _count: number = 1): Promise<boolean> {
+    let pokeFunc
+    if (_contact.scene === 'group') pokeFunc = async () => this.super.sendGroupNudge(+_contact.peer, +_targetId)
+    if (_contact.scene === 'friend') pokeFunc = async () => this.super.sendFriendNudge(+_contact.peer, +_targetId === +this.account.selfId)
+    if (!pokeFunc) throw new Error('不支持的场景' + _contact.scene)
+    for (let i = 0; i < +_count; i++) {
+      await pokeFunc()
+    }
+    return true
   }
 
-  // async setGroupApplyResult (_requestId: string, _isApprove: boolean, _denyReason?: string): Promise<void> {
-  //   _isApprove
-  //     ? await this.super.acceptGroupRequest(_requestId, 'join_request')
-  //     : await this.super.rejectGroupJoinRequest(_requestId, _denyReason)
-  // }
+  async setFriendApplyResult (_requestId: string, _isApprove: boolean, _remark?: string): Promise<void> {
+    let res = (await this.super.getFriendRequests()).requests
+    let req = res.find(v => v.initiator_id === +_requestId)
+    if (!req) {
+      res = (await this.super.getFriendRequests(20, true)).requests
+      req = res.find(v => v.initiator_id === +_requestId)
+      if (!req) return
+    }
+    _isApprove
+      ? this.super.acceptFriendRequest(req.initiator_uid, req.is_filtered)
+      : this.super.rejectFriendRequest(req.initiator_uid, req.is_filtered)
+  }
 
-  // async setInvitedJoinGroupResult (_requestId: string, _isApprove: boolean): Promise<void> {
-  // }
+  async setGroupApplyResult (_requestId: string, _isApprove: boolean, _denyReason?: string): Promise<void> {
+    let res = (await this.super.getGroupNotifications(+_requestId)).notifications
+    let req = res.find(v => v.notification_seq === +_requestId)
+    if (!req) {
+      res = (await this.super.getGroupNotifications(+_requestId, true)).notifications
+      req = res.find(v => v.notification_seq === +_requestId)
+      if (req && req.type === 'join_request' && req.state === 'pending') {
+        _isApprove
+          ? await this.super.acceptGroupRequest(+_requestId, 'join_request', req.group_id, req.is_filtered)
+          : await this.super.rejectGroupRequest(+_requestId, 'join_request', req.group_id, req.is_filtered, _denyReason)
+      }
+    }
+  }
+
+  async setInvitedJoinGroupResult (_requestId: string, _isApprove: boolean): Promise<void> {
+    let res = (await this.super.getGroupNotifications(+_requestId)).notifications
+    let req = res.find(v => v.notification_seq === +_requestId)
+    if (!req) {
+      res = (await this.super.getGroupNotifications(+_requestId, true)).notifications
+      req = res.find(v => v.notification_seq === +_requestId)
+
+      if (!req) return
+      if (req.type === 'invited_join_request' && req.state === 'pending') {
+        if (req.target_user_id === +this.selfId) {
+          _isApprove
+            ? await this.super.acceptGroupInvitation(req.group_id, +_requestId)
+            : await this.super.rejectGroupInvitation(req.group_id, +_requestId)
+        } else {
+          _isApprove
+            ? await this.super.acceptGroupRequest(+_requestId, 'invited_join_request', req.group_id)
+            : await this.super.rejectGroupRequest(+_requestId, 'invited_join_request', req.group_id)
+        }
+      }
+    }
+  }
 
   async getCookies (_domain: string): Promise<{ cookie: string }> {
     const res = await this.super.getCookies(_domain)

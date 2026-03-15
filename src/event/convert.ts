@@ -84,9 +84,6 @@ export async function KarinConvertAdapter (data: Array<SendElement>): Promise<Ar
       case 'video':
         elements.push(Segment.video(i.file))
         break
-      case 'node':
-        elements.push(Segment.node(i))
-        break
       default:
         elements.push(Segment.text(JSON.stringify(i)))
     }

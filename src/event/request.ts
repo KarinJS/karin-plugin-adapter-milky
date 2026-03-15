@@ -40,7 +40,7 @@ export function GroupJoinRequest (event: Extract<Event, { event_type: 'group_joi
       applierId: userId,
       inviterId: 'target_user_id' in event.data ? String(event.data.target_user_id) : '',
       reason: 'comment' in event.data ? event.data.comment : '',
-      flag: event.event_type + ':' + event.data.notification_seq,
+      flag: event.data.notification_seq + '',
       groupId
     }
   })
@@ -59,7 +59,7 @@ export function GroupInvite (event: Extract<Event, { event_type: 'group_invitati
     srcReply: (elements) => bot.sendMsg(contact, elements),
     content: {
       inviterId: userId,
-      flag: event.event_type + ':' + event.data.invitation_seq,
+      flag: event.data.invitation_seq + '',
     }
   })
 }

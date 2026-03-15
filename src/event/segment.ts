@@ -1,5 +1,4 @@
-import { OutgoingSegment } from '@saltify/milky-types'
-import { NodeElement } from 'node-karin'
+import { OutgoingForwardedMessage, OutgoingSegment } from '@saltify/milky-types'
 
 type Segment<T> = Extract<OutgoingSegment, { type: T }>
 interface ImageOptions {
@@ -70,13 +69,20 @@ export const segment = {
     return { type: 'video', data: { uri } }
   },
 
-  node (elements: NodeElement): Segment<'forward'> {
+  fake (userId: number, messages: OutgoingSegment[], nickname?: string): OutgoingForwardedMessage {
+    return {
+      user_id: userId,
+      sender_name: nickname || '',
+      segments: messages
+    }
+  },
+  node (elements: OutgoingForwardedMessage[]): Array<Segment<'forward'>> {
     const msgs: Segment<'forward'> = {
       type: 'forward',
       data: {
-        messages: []
+        messages: elements
       }
     }
-    return msgs
+    return [msgs]
   }
 }
