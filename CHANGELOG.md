@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.9...v1.2.0) (2026-03-17)
+
+
+### Features
+
+* 新增web配置,新增配置热重载 ([7bcdd65](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/7bcdd650f5e095a046a604cca82db830f24fc77b))
+
 ## [1.1.9](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.1.8...v1.1.9) (2026-03-15)
 
 
