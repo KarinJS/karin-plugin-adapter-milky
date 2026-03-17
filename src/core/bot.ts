@@ -3,26 +3,28 @@ import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, 
 import { Client } from '@/core/Client'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
 import { dir, UrlEnd } from '@/utils'
-import { WebHookHander } from '@/connection/webhook/handler'
 import { WebSocketHandle } from '@/connection/websocket'
 import { SSEClient } from '@/connection/ServerSentEvents'
 import { segment } from '@/event/segment'
+import { WebHook } from '@/connection/WebHook'
 
 export class MilkyAdapter extends AdapterBase implements AdapterType {
   #init = false
   super: Client
   cfg: BotCfg
+  clear = null
+  transport: WebSocketHandle | SSEClient | WebHook | null = null
   constructor (cfg: BotCfg) {
     super()
     this.cfg = cfg
     this.adapter = {
       index: 0,
-      name: 'Milky-Adapter',
+      name: dir.name,
       version: dir.version,
       platform: 'qq',
       standard: 'other',
       protocol: 'other',
-      communication: cfg.protocol === 'sse' || cfg.protocol === 'webhook' ? 'http' : cfg.protocol === 'websocket' || cfg.protocol === 'ws' ? 'webSocketClient' : 'other',
+      communication: cfg.protocol === 'sse' || cfg.protocol === 'webhook' ? 'http' : cfg.protocol === 'websocket' ? 'webSocketClient' : 'other',
       address: UrlEnd(cfg.url),
       connectTime: 0,
       secret: cfg.token
@@ -30,7 +32,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     this.super = new Client(this.adapter.address, this)
   }
 
-  async init () {
+  async start () {
     if (this.#init) return
     this.#init = true
     const info = await this.super.getLoginInfo()
@@ -45,15 +47,30 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       subId: {}
     }
     this.adapter.address += '/event'
-    if (this.cfg.protocol === 'webhook') return WebHookHander.register(this)
-    if (this.cfg.protocol === 'sse') return new SSEClient(this).connect()
-    if (this.cfg.protocol === 'websocket' || this.cfg.protocol === 'ws') {
-      const url = new URL(this.adapter.address)
-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-      this.adapter.address = url.toString()
-      return new WebSocketHandle(this).connect()
+    if (this.cfg.protocol === 'webhook') {
+      this.transport = new WebHook(this)
+      return this.transport.connect()
+    } else
+      if (this.cfg.protocol === 'sse') {
+        this.transport = new SSEClient(this)
+        return this.transport.connect()
+      } else
+        if (this.cfg.protocol === 'websocket') {
+          const url = new URL(this.adapter.address)
+          url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+          this.adapter.address = url.toString()
+          this.transport = new WebSocketHandle(this)
+          return this.transport.connect()
+        } else {
+          return this.logger('error', '未知的通讯方式' + this.cfg.protocol)
+        }
+  }
+
+  stop () {
+    if (this.transport) {
+      this.transport.clear()
+      this.__unregisterBot()
     }
-    return this.logger('error', '未知的通讯方式' + this.cfg.protocol)
   }
 
   get selfId (): string {

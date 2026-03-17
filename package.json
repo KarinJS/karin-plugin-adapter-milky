@@ -9,6 +9,7 @@
     "karin-adapter"
   ],
   "description": "基于Karin的milky协议适配器",
+  "homepage": "https://github.com/KarinJS/karin-plugin-adapter-milky",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/KarinJS/karin-plugin-adapter-milky.git"
@@ -39,6 +40,8 @@
   },
   "karin": {
     "main": "src/index.ts",
+    "web": "lib/web.config.js",
+    "ts-web": "src/web.config.ts",
     "apps": [
       "lib/apps"
     ],

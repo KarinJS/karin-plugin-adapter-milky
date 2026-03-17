@@ -62,6 +62,7 @@ export class WebSocketHandle {
     this.#reconnectCount++
     this.bot.logger('error', `[WebSocket]尝试第${this.#reconnectCount}次重连`)
     setTimeout(() => {
+      if (!this.#wss) return
       this.connect()
     }, 5000)
   }
@@ -71,10 +72,11 @@ export class WebSocketHandle {
       clearInterval(this.#IntervalTime)
       this.#IntervalTime = null
     }
-    if (this.#wss) {
-      this.#wss.close()
-      this.#wss.removeAllListeners()
+    const ws = this.#wss
+    if (ws) {
       this.#wss = null
+      ws.removeAllListeners()
+      ws.close()
     }
   }
 }

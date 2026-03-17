@@ -2,7 +2,7 @@ import { app, logger } from 'node-karin'
 import express, { NextFunction, Request, Response } from 'node-karin/express'
 import { WebHookHander } from './handler'
 import { Cfg } from '@/config'
-import { dir } from '@/utils'
+import { dir, LoggerAdapter } from '@/utils'
 
 const RouterPath = '/milky/api/v1'
 const router = express.Router()
@@ -29,5 +29,5 @@ router.get('/webhook', (_req, res) => res.json({
 }))
 
 app.use(RouterPath, router)
-logger.info(`[${dir.AdapterName}] WebHook启动成功`)
-logger.info(`[${dir.AdapterName}] ${logger.yellow('WebHook 访问地址')}: ${logger.green(`http://127.0.0.1:${process.env.HTTP_PORT}${RouterPath}/webhook`)}`)
+LoggerAdapter('info', 'WebHook启动成功')
+LoggerAdapter('info', `${logger.yellow('WebHook 访问地址')}: ${logger.green(`http://127.0.0.1:${process.env.HTTP_PORT}${RouterPath}/webhook`)}`)

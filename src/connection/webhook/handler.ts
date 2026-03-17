@@ -36,8 +36,7 @@ class Handler {
 
   /** 清理内容 */
   clear (Id: string) {
-    const client = this.#ClientMap.get(Id)
-    if (client) this.#ClientMap.delete(Id)
+    this.#ClientMap.delete(Id)
   }
 }
 export const WebHookHander = new Handler()

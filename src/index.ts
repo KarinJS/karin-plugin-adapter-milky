@@ -1,6 +1,6 @@
-import { logger } from 'node-karin'
 import '@/connection/webhook/webhook'
-import '@/core/init'
-import { dir } from './utils'
+import { LoggerAdapter } from './utils'
+import { Bot } from './core/BotManager'
 
-logger.info(`[${dir.AdapterName}] 适配器初始化完成~`)
+LoggerAdapter('info', '适配器初始化完成~')
+Bot.loaderBots()
