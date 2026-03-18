@@ -4,7 +4,7 @@
 
 ## 安装
 
-在 Karin 项目根目录下执行：
+可通过Karin WebUI安装该插件或者在 Karin 项目根目录下执行：
 
 ```bash
 pnpm add @karinjs/plugin-adapter-milky -w
@@ -14,15 +14,14 @@ pnpm add @karinjs/plugin-adapter-milky -w
 
 ### 第一次使用
 
-1. **安装插件**（见上方安装命令）
-
-2. **启动 Karin**
+1. **启动 Karin**
    首次启动时，插件会自动创建配置文件：
    - 配置目录：`@karinjs/@karinjs/plugin-adapter-milky/config/`
    - 配置文件：`config.json`
 
-3. **修改配置**
-   找到并编辑配置文件：
+2. **修改配置**
+   可前往Karin 的Webui 查看配置
+   或者手动编辑配置文件，且修改配置后无需重启
 
 ```json
 {
@@ -37,19 +36,19 @@ pnpm add @karinjs/plugin-adapter-milky -w
 }
 ```
 
-## 配置项说明 (注: 修改配置文件后需要重启才能生效)
+## 配置项说明
 
 `webhookToken`
-WebHook的鉴权密钥，设置后会验证请求头的Authorization字段
+WebHook的鉴权密钥，设置后会验证Milky协议请求时的请求头的Authorization字段
 
 `protocol`
-连接协议，支持 `websocket`,`sse`和`webhook`
+连接协议，支持 `websocket`,`sse`和`webhook` ,`websocket`和`sse`
 
 `url`
 接口请求地址,必须以 `http://` 或 `https://` 开头的链接，例如 `http://127.0.0.1:8080`
 
 `token`
-接口的鉴权密钥，将用于连接Bot并请求接口
+url 的鉴权密钥，请求接口或主动连接到 Milky 协议时使用
 
 ## 本地开发
 
@@ -86,4 +85,4 @@ pnpm build
 
 ## 许可证
 
-GPL-3.0 License
+MIT License
