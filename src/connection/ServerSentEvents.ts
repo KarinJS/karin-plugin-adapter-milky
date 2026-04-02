@@ -1,13 +1,15 @@
 import { Cfg } from '@/config'
 import { MilkyAdapter } from '@/core/bot'
 import { EventDispatch } from '@/event'
-import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { Event } from '@saltify/milky-types'
+import { EventSource } from 'eventsource'
 import karin from 'node-karin'
 
 export class SSEClient {
   /** 首次连接时间 */
   #startTime = 0
-  #abortController: AbortController | null = null
+  /** sse实例 */
+  #client: null | EventSource = null
   /** 适配器实例 */
   bot: MilkyAdapter
   /** 重连次数 */
@@ -20,42 +22,43 @@ export class SSEClient {
   }
 
   async connect () {
-    this.#abortController = new AbortController()
-    await fetchEventSource(this.bot.adapter.address, {
-      signal: this.#abortController.signal,
-      headers: { authorization: `Bearer ${this.bot.adapter.secret}` },
-      onopen: async () => {
-        if (this.#IntervalTime) {
-          clearInterval(this.#IntervalTime)
-          this.#IntervalTime = null
+    this.#client = new EventSource(this.bot.adapter.address, {
+      fetch: (input, init) => fetch(input, {
+        ...init,
+        headers: {
+          ...init?.headers,
+          authorization: `Bearer ${this.bot.adapter.secret}`
         }
-        this.#reconnectCount = 0
-        if (this.#IntervalTime) clearInterval(this.#IntervalTime)
-        this.#startTime = Date.now()
-        this.#IntervalTime = setInterval(() => {
-          const time = Date.now()
-          this.bot.adapter.connectTime = time - this.#startTime
-        }, 1000)
-        this.bot.__registerBot()
-      },
-      onmessage: (event) => {
-        if (event.event === 'milky_event') {
-          const data = JSON.parse(event.data)
-          EventDispatch(data, this.bot)
-        }
-      },
-      onerror: (err) => {
-        this.bot.logger('error', `[SSE]连接错误:${JSON.stringify(err)}`)
-        const index = this.bot.adapter.index
-        if (index) {
-          const bot = karin.getBot(index)
-          if (bot) {
-            this.bot.__unregisterBot()
-          }
-        }
-        this.reconnect()
-      }
+      })
     })
+    this.#client.addEventListener('milky_event', (event) => {
+      const data = JSON.parse(event.data) as Event
+      EventDispatch(data, this.bot)
+    })
+    this.#client.onopen = () => {
+      if (this.#IntervalTime) {
+        clearInterval(this.#IntervalTime)
+        this.#IntervalTime = null
+      }
+      this.#reconnectCount = 0
+      this.#startTime = Date.now()
+      this.#IntervalTime = setInterval(() => {
+        const time = Date.now()
+        this.bot.adapter.connectTime = time - this.#startTime
+      }, 1000)
+      this.bot.__registerBot()
+    }
+    this.#client.onerror = (err) => {
+      this.bot.logger('error', `[SSE]连接错误:${JSON.stringify(err)}`)
+      const index = this.bot.adapter.index
+      if (index) {
+        const bot = karin.getBot(index)
+        if (bot) {
+          this.bot.__unregisterBot()
+        }
+      }
+      this.reconnect()
+    }
   }
 
   reconnect () {
@@ -83,9 +86,9 @@ export class SSEClient {
       clearInterval(this.#IntervalTime)
       this.#IntervalTime = null
     }
-    if (this.#abortController) {
-      this.#abortController.abort()
-      this.#abortController = null
+    if (this.#client) {
+      this.#client.close()
+      this.#client = null
     }
   }
 }
