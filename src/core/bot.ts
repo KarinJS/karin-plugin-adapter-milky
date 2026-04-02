@@ -26,11 +26,11 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       standard: 'milky',
       protocol: 'other',
       communication: cfg.protocol === 'websocket' ? 'webSocketClient' : cfg.protocol,
-      address: new URL('/event', cfg.url).toString(),
+      address: new URL('event', `${cfg.url.endsWith('/') ? cfg.url : `${cfg.url}/`}`).toString(),
       connectTime: 0,
       secret: cfg.token
     }
-    this.super = new Client(this.adapter.address, this)
+    this.super = new Client(cfg.url, this)
   }
 
   async #init () {

@@ -50,7 +50,7 @@ export class Client {
 
   constructor (url: string, bot: MilkyAdapter) {
     this.#axios = axios.create({
-      baseURL: new URL('/api', url).toString(),
+      baseURL: new URL('api', `${url.endsWith('/') ? url : `${url}/`}`).toString(),
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json'
