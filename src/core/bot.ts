@@ -2,14 +2,15 @@ import { BotCfg } from '@/config/types'
 import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, ForwardOptions, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, NodeElement, registerBot, SendElement, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
 import { Client } from '@/core/Client'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
-import { dir, UrlEnd } from '@/utils'
+import { dir } from '@/utils'
 import { WebSocketHandle } from '@/connection/websocket'
 import { SSEClient } from '@/connection/ServerSentEvents'
 import { segment } from '@/event/segment'
 import { WebHook } from '@/connection/WebHook'
+import { Cfg } from '@/config'
 
 export class MilkyAdapter extends AdapterBase implements AdapterType {
-  #init = false
+  #inited = false
   super: Client
   cfg: BotCfg
   clear = null
@@ -22,53 +23,85 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       name: dir.name,
       version: dir.version,
       platform: 'qq',
-      standard: 'other',
+      standard: 'milky',
       protocol: 'other',
-      communication: cfg.protocol === 'sse' || cfg.protocol === 'webhook' ? 'http' : cfg.protocol === 'websocket' ? 'webSocketClient' : 'other',
-      address: UrlEnd(cfg.url),
+      communication: cfg.protocol === 'websocket' ? 'webSocketClient' : cfg.protocol,
+      address: new URL('/event', cfg.url).toString(),
       connectTime: 0,
       secret: cfg.token
     }
     this.super = new Client(this.adapter.address, this)
   }
 
-  async start () {
-    if (this.#init) return
-    this.#init = true
-    const info = await this.super.getLoginInfo()
-    if (!info) throw new Error('获取登录信息失败')
-    const selfId = String(info.uin)
-    this.account = {
-      uin: selfId,
-      uid: selfId,
-      selfId,
-      name: info.nickname,
-      avatar: `https://q1.qlogo.cn/g?b=qq&s=0&nk=${selfId}`,
-      subId: {}
+  async #init () {
+    if (this.#inited) return
+    try {
+      const info = await this.super.getLoginInfo()
+      if (!info) throw new Error('获取登录信息失败')
+      const selfId = String(info.uin)
+      this.account = {
+        uin: selfId,
+        uid: selfId,
+        selfId,
+        name: info.nickname,
+        avatar: `https://q1.qlogo.cn/g?b=qq&s=0&nk=${selfId}`,
+        subId: {}
+      }
+      const imp = await this.super.getImplInfo()
+      if (imp) {
+        this.adapter.protocol = imp.impl_name
+      }
+      return true
+    } catch (err) {
+      this.#inited = false
+      throw err
     }
-    this.adapter.address += '/event'
-    if (this.cfg.protocol === 'webhook') {
+  }
+
+  async start () {
+    if (this.transport) return
+    let RetryCount = 0
+    const RMC = +Cfg.get.reconnectMaxCount || 0
+    let RT = +Cfg.get.reconnectInterval || 1
+    if (RT <= 0) RT = 1
+    while (true) {
+      try {
+        await this.#init()
+        break
+      } catch (err) {
+        this.logger('error', err)
+        if (RetryCount >= RMC && RMC !== -1) {
+          return this.logger('error', '初始化失败，重试次数已达上限，停止重试')
+        }
+        RetryCount++
+        this.logger('error', `初始化失败，${Cfg.get.reconnectInterval}秒后将进行第${RetryCount}次重试...`)
+        await new Promise(resolve => setTimeout(resolve, RT * 1000))
+      }
+    }
+    const protocol = this.adapter.communication
+    if (protocol === 'webhook') {
       this.transport = new WebHook(this)
-      return this.transport.connect()
     } else
-      if (this.cfg.protocol === 'sse') {
+      if (protocol === 'sse') {
         this.transport = new SSEClient(this)
-        return this.transport.connect()
       } else
-        if (this.cfg.protocol === 'websocket') {
+        if (protocol === 'webSocketClient') {
           const url = new URL(this.adapter.address)
-          url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+          if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
+            url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+          }
           this.adapter.address = url.toString()
           this.transport = new WebSocketHandle(this)
-          return this.transport.connect()
         } else {
-          return this.logger('error', '未知的通讯方式' + this.cfg.protocol)
+          return this.logger('error', '未知的通讯方式' + protocol)
         }
+    return this.transport.connect()
   }
 
   stop () {
     if (this.transport) {
       this.transport.clear()
+      this.transport = null
       this.__unregisterBot()
     }
   }

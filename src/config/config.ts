@@ -5,16 +5,20 @@ import { ConfigType } from './types'
 import { LoggerAdapter, RandomToken } from '@/utils/utils'
 import { dir } from '@/utils'
 import { Bot } from '@/core/BotManager'
+import _ from 'node-karin/lodash'
 
 class Config {
   /** 默认配置 */
-  defaultConfig: ConfigType
+  #defCfg: ConfigType
   /** 配置文件路径 */
   CfgPath: string
   watch: FSWatcher | null = null
   watchTimers: NodeJS.Timeout | null = null
+  #cache: ConfigType | null = null
   constructor () {
-    this.defaultConfig = {
+    this.#defCfg = {
+      reconnectMaxCount: -1,
+      reconnectInterval: 5,
       webhookToken: '',
       bots: []
     }
@@ -23,11 +27,9 @@ class Config {
   }
 
   init (): void {
-    const def = this.defaultConfig
-    def.webhookToken = RandomToken()
     if (!existsSync(this.CfgPath)) {
       mkdirSync(path.dirname(this.CfgPath))
-      const def = { ...this.defaultConfig }
+      const def = { ...this.#defCfg }
       def.webhookToken = RandomToken()
       fs.writeFileSync(this.CfgPath, JSON.stringify(def, null, 2), 'utf8')
     }
@@ -37,12 +39,19 @@ class Config {
   /** 读取配置文件 */
   get get (): ConfigType {
     try {
+      if (this.#cache) return this.#cache
       const cfg = requireFileSync(this.CfgPath, { force: true }) as ConfigType
-      return { ...this.defaultConfig, ...cfg }
+      this.#cache = { ...this.#defCfg, ...cfg }
+      return this.#cache
     } catch (err) {
       LoggerAdapter('error', '读取配置文件失败，已加载默认配置', err)
-      return this.defaultConfig
+      return this.#defCfg
     }
+  }
+
+  /** 默认配置 */
+  get defCfg () {
+    return this.#defCfg
   }
 
   async save (data: ConfigType) {
@@ -60,8 +69,34 @@ class Config {
     this.watch = fs.watch(this.CfgPath, () => {
       if (this.watchTimers) clearTimeout(this.watchTimers)
       this.watchTimers = setTimeout(() => {
-        LoggerAdapter('info', '配置变化')
-        Bot.reload(this.get.bots)
+        const temp = this.#cache
+        LoggerAdapter('info', '配置变化,已清除缓存')
+        this.#cache = null
+        if (!_.isEqual(temp?.bots, this.get.bots)) {
+          LoggerAdapter('info', 'Bot列表变化,开始重载变化Bot')
+          const cfgs = this.get.bots
+          const newMap = new Map<string, ConfigType['bots'][number]>()
+          for (const cfg of cfgs) {
+            const key = Bot.getKey(cfg.protocol, cfg.url)
+            newMap.set(key, cfg)
+            const old = Bot.getBot(key)
+            if (!old) {
+              Bot.addBot(cfg)
+              continue
+            }
+            if (old.adapter.secret !== cfg.token) {
+              old.stop()
+              old.adapter.secret = cfg.token
+              old.start()
+            }
+          }
+
+          for (const key of Bot.bots.keys()) {
+            if (!newMap.has(key)) {
+              Bot.delBot(key)
+            }
+          }
+        }
       }, 1000)
     })
   }

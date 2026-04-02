@@ -49,14 +49,19 @@ export class Client {
   #axios: AxiosInstance
 
   constructor (url: string, bot: MilkyAdapter) {
-    const headers: any = {
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    }
-    if (bot.adapter.secret) headers.Authorization = `Bearer ${bot.adapter.secret}`
     this.#axios = axios.create({
-      baseURL: url + '/api',
-      headers
+      baseURL: new URL('/api', url).toString(),
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    this.#axios.interceptors.request.use(config => {
+      const token = bot.adapter.secret
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      return config
     })
   }
 

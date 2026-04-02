@@ -9,8 +9,8 @@ export default defineConfig({
     name: 'Milky适配器',
     author: {
       name: dir.pkg.author,
-      home: dir.pkg.homepage,
-      avatar: 'https://github.com/yusheng929.png'
+      home: 'https://github.com/KarinJS',
+      avatar: 'https://github.com/KarinJS.png'
     },
     icon: {
       name: 'Computer',
@@ -25,6 +25,23 @@ export default defineConfig({
       label: 'WebHook鉴权Token',
       isRequired: false,
       defaultValue: Cfg.get.webhookToken
+    }),
+    components.input.number('reconnectMaxCount', {
+      label: '最大重连次数',
+      description: '连接失败后的重连次数, 设置为-1表示无限次数',
+      defaultValue: Cfg.get.reconnectMaxCount + '',
+      rules: [{
+        min: -1
+      }]
+    }),
+    components.input.number('reconnectInterval', {
+      label: '重连间隔(单位秒)',
+      description: '每次重连的间隔',
+      defaultValue: Cfg.get.reconnectInterval + '',
+      rules: [{
+        min: 1,
+        error: '重连间隔必须大于0'
+      }]
     }),
     components.accordionPro.create('bots',
       Cfg.get.bots.map((item, index) => ({
