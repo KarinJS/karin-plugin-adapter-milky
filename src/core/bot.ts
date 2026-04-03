@@ -37,7 +37,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     if (this.#inited) return
     try {
       const info = await this.super.getLoginInfo()
-      if (!info) throw new Error('获取登录信息失败', info)
+      if (!info) throw new Error('获取登录信息失败')
       const selfId = String(info.uin)
       this.account = {
         uin: selfId,
@@ -68,8 +68,8 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       try {
         await this.#init()
         break
-      } catch (err) {
-        this.logger('error', err)
+      } catch (err: any) {
+        this.logger('error', err.message)
         if (RetryCount >= RMC && RMC !== -1) {
           return this.logger('error', '初始化失败，重试次数已达上限，停止重试')
         }

@@ -17,7 +17,7 @@ class Config {
   #cache: ConfigType | null = null
   constructor () {
     this.#defCfg = {
-      reconnectMaxCount: -1,
+      reconnectMaxCount: 5,
       reconnectInterval: 5,
       webhookToken: '',
       bots: []

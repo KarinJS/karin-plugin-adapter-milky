@@ -41,8 +41,8 @@ export class WebSocketHandle {
       try {
         const data = JSON.parse(event)
         EventDispatch(data, this.bot)
-      } catch (err) {
-        this.bot.logger('error', `WebSocket 消息处理错误: ${err}`)
+      } catch (err: any) {
+        this.bot.logger('error', `WebSocket 消息处理错误: ${err.message}`)
       }
     })
     this.#wss.on('error', (err) => {

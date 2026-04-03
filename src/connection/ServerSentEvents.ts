@@ -34,8 +34,8 @@ export class SSEClient {
       try {
         const data = JSON.parse(event.data)
         EventDispatch(data, this.bot)
-      } catch (err) {
-        this.bot.logger('error', `[SSE]消息解析失败: ${err}`)
+      } catch (err: any) {
+        this.bot.logger('error', `[SSE]消息解析失败: ${err.message}`)
       }
     })
     this.#client.onopen = () => {
