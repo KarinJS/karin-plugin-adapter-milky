@@ -1,7 +1,6 @@
 import { Cfg } from '@/config'
 import { MilkyAdapter } from '@/core/bot'
 import { EventDispatch } from '@/event'
-import { Event } from '@saltify/milky-types'
 import { EventSource } from 'eventsource'
 import karin from 'node-karin'
 
@@ -32,8 +31,12 @@ export class SSEClient {
       })
     })
     this.#client.addEventListener('milky_event', (event) => {
-      const data = JSON.parse(event.data) as Event
-      EventDispatch(data, this.bot)
+      try {
+        const data = JSON.parse(event.data)
+        EventDispatch(data, this.bot)
+      } catch (err) {
+        this.bot.logger('error', `[SSE]消息解析失败: ${err}`)
+      }
     })
     this.#client.onopen = () => {
       if (this.#IntervalTime) {
@@ -41,6 +44,7 @@ export class SSEClient {
         this.#IntervalTime = null
       }
       this.#reconnectCount = 0
+      if (this.#IntervalTime) clearInterval(this.#IntervalTime)
       this.#startTime = Date.now()
       this.#IntervalTime = setInterval(() => {
         const time = Date.now()
@@ -49,7 +53,7 @@ export class SSEClient {
       this.bot.__registerBot()
     }
     this.#client.onerror = (err) => {
-      this.bot.logger('error', `[SSE]连接错误:${JSON.stringify(err)}`)
+      this.bot.logger('error', `[SSE]连接错误: ${JSON.stringify(err)}`)
       const index = this.bot.adapter.index
       if (index) {
         const bot = karin.getBot(index)

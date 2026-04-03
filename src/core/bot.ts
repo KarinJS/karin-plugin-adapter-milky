@@ -37,7 +37,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     if (this.#inited) return
     try {
       const info = await this.super.getLoginInfo()
-      if (!info) throw new Error('获取登录信息失败')
+      if (!info) throw new Error('获取登录信息失败', info)
       const selfId = String(info.uin)
       this.account = {
         uin: selfId,
