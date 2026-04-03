@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.2](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.1...v1.2.2) (2026-04-03)
+
+
+### Bug Fixes
+
+* preserve configured url prefix for api and event ([65195f3](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/65195f32ccd3159f71145a46d0255d355a074cb2))
+* use node-compatible sse client ([94f023b](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/94f023b3b6c0dbe1a77f19c69d1ca313921e5c75))
+* 优化命令解析和错误处理 ([f4077e4](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/f4077e4f8de3c3b8e7b2bef55f84e692fbbb661d))
+* 删除多余依赖 ([795a925](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/795a9251c9b55a2932555fbe49754953efa0444b))
+
 ## [1.2.1](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.0...v1.2.1) (2026-04-02)
 
 
