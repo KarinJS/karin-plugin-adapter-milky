@@ -26,18 +26,18 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       standard: 'milky',
       protocol: 'other',
       communication: cfg.protocol === 'websocket' ? 'webSocketClient' : cfg.protocol,
-      address: new URL('/event', cfg.url).toString(),
+      address: new URL('event', `${cfg.url.endsWith('/') ? cfg.url : `${cfg.url}/`}`).toString(),
       connectTime: 0,
       secret: cfg.token
     }
-    this.super = new Client(this.adapter.address, this)
+    this.super = new Client(cfg.url, this)
   }
 
   async #init () {
     if (this.#inited) return
     try {
       const info = await this.super.getLoginInfo()
-      if (!info) throw new Error('获取登录信息失败')
+      if (!info) throw new Error('获取登录信息失败', info)
       const selfId = String(info.uin)
       this.account = {
         uin: selfId,

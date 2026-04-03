@@ -68,7 +68,6 @@
     "registry": "https://registry.npmjs.org"
   },
   "dependencies": {
-    "@microsoft/fetch-event-source": "^2.0.1",
     "eventsource": "^4.1.0",
     "ws": "^8.19.0"
   }
