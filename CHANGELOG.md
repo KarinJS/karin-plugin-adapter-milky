@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.2...v1.2.3) (2026-04-03)
+
+
+### Bug Fixes
+
+* 优化错误输出，不再打印完整日志 ([d05e1ef](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/d05e1ef8c2803a897126d7065609f337465d691c))
+
 ## [1.2.2](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.1...v1.2.2) (2026-04-03)
 
 
