@@ -156,7 +156,7 @@ export function GroupMessageReaction (event: Extract<Event, { event_type: 'group
       count: 1,
       faceId: +event.data.face_id,
       isSet: event.data.is_add,
-      messageId: bot.super.encodeMsgId('group', +contact.peer, event.data.message_seq)
+      messageId: bot.super.encodeMsgId('group', +contact.peer, event.data.message_seq),
     }
   })
 }

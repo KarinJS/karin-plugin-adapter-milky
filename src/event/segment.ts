@@ -80,7 +80,7 @@ export const segment = {
     const msgs: Segment<'forward'> = {
       type: 'forward',
       data: {
-        messages: elements
+        messages: elements,
       }
     }
     return [msgs]

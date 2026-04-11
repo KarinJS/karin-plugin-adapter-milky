@@ -268,7 +268,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   async setMsgReaction (contact: Contact, messageId: string, faceId: number | string, isSet: boolean): Promise<void> {
     if (contact.scene !== 'group') throw new Error('仅支持群聊设置表情回应')
     const seq = this.super.decodeMsgId(messageId).seq
-    await this.super.setGroupMessageReaction(+contact.peer, seq, String(faceId), isSet)
+    await this.super.setGroupMessageReaction(+contact.peer, seq, String(faceId), 'face', isSet)
   }
 
   async groupKickMember (_groupId: string, _targetId: string, _rejectAddRequest?: boolean, _kickReason?: string): Promise<void> {

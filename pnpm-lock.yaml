@@ -22,8 +22,8 @@ importers:
         specifier: ^2.0.2
         version: 2.3.1
       '@saltify/milky-types':
-        specifier: 1.2.0-rc.5
-        version: 1.2.0-rc.5
+        specifier: 1.2.2
+        version: 1.2.2
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
@@ -577,8 +577,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@saltify/milky-types@1.2.0-rc.5':
-    resolution: {integrity: sha512-xO6izWnhHjeZQWm7X+zw+5AOFDeT19cRMb4FO9oHyLl9be5WpT1Z1lG0nCQ+bVUj00h4YtrASAiqPrdMWVgP2Q==}
+  '@saltify/milky-types@1.2.2':
+    resolution: {integrity: sha512-sNxd6Lz5xVBvlV87yKKvsU0fzOcQBwPLsY9MeLZ3fY8T7zp1RSkU2j2cF2z0Mcc+I0AW1kOXY1qt4xMwbJcSpQ==}
 
   '@snapka/browser-finder@0.1.12':
     resolution: {integrity: sha512-PS6t3OiVom2u+TqcnDyWXx9EQBdMwdCgot9ZWv87R8aCwnuJYPy34xA/+maNgKf9EK5nE2c+9vLQ75V1fv8yyA==}
@@ -2683,7 +2683,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.60.1':
     optional: true
 
-  '@saltify/milky-types@1.2.0-rc.5':
+  '@saltify/milky-types@1.2.2':
     dependencies:
       zod: 4.3.6
 

@@ -23,7 +23,7 @@
   "devDependencies": {
     "@karinjs/plugin-basic": "^1.4.4",
     "@karinjs/plugin-puppeteer": "^2.0.2",
-    "@saltify/milky-types": "1.2.0-rc.5",
+    "@saltify/milky-types": "1.2.2",
     "@types/express": "^5.0.6",
     "@types/lodash": "^4.17.23",
     "@types/node": "^25.0.6",

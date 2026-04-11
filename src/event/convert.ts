@@ -13,7 +13,7 @@ export async function AdapterConvertKarin (event: IncomingMessage, bot: MilkyAda
         elements.push(segment.text(i.data.text))
         break
       case 'mention':
-        elements.push(segment.at(String(i.data.user_id)))
+        elements.push(segment.at(String(i.data.user_id), i.data.name))
         break
       case 'mention_all':
         elements.push(segment.at('all'))

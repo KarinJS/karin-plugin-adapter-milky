@@ -21,6 +21,7 @@ import {
   GetImplInfoOutput,
   GetLoginInfoOutput,
   GetMessageOutput,
+  GetPeerPinsOutput,
   GetPrivateFileDownloadUrlOutput,
   GetResourceTempUrlOutput,
   GetUserProfileOutput,
@@ -145,10 +146,26 @@ export class Client {
     return await this.request<GetGroupMemberInfoOutput>('/get_group_member_info', { group_id: +groupId, user_id: +userId, no_cache: noCache })
   }
 
+  /** 获取置顶的好友和群列表 */
+  async getPeerPins () {
+    return await this.request<GetPeerPinsOutput>('/get_peer_pins', {})
+  }
+
   /**
-   * 设置 QQ 账号头像
-   * @param uri 头像文件 URI，支持 file:// http(s):// base64:// 三种格式
+   * 设置好友或群的置顶状态
+   * @param scene 要设置的会话的消息场景，可能值：friend group temp
+   * @param peerId 要设置的好友 QQ 号或群号
+   * @param isPinned 是否置顶, false 表示取消置顶，默认值：true
+   * @returns
    */
+  async setPeerPin (scene: 'group' | 'friend' | 'temp', peerId: number, isPinned: boolean = true) {
+    return await this.request('/set_peer_pin', { message_scene: scene, peer_id: peerId, is_pinned: isPinned })
+  }
+
+  /**
+     * 设置 QQ 账号头像
+     * @param uri 头像文件 URI，支持 file:// http(s):// base64:// 三种格式
+     */
   async setAvatar (uri: string) {
     return await this.request('/set_avatar', { uri })
   }
@@ -479,8 +496,8 @@ export class Client {
    * @param isAdd 是否添加表情，`false` 表示取消
    * @returns
    */
-  async setGroupMessageReaction (groupId: number, messageSeq: number, reaction: string, isAdd: boolean = true) {
-    return await this.request('/send_group_message_reaction', { group_id: +groupId, message_seq: messageSeq, reaction, is_add: isAdd })
+  async setGroupMessageReaction (groupId: number, messageSeq: number, reaction: string, reactionType: 'face' | 'emoji', isAdd: boolean = true) {
+    return await this.request('/send_group_message_reaction', { group_id: +groupId, message_seq: messageSeq, reaction, reaction_type: reactionType, is_add: isAdd })
   }
 
   /**
