@@ -4,13 +4,13 @@
     "target": "ES2022",
     "esModuleInterop": true,
     "moduleResolution": "Bundler",
+    "forceConsistentCasingInFileNames": true,
     "outDir": "./lib",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ],
     },
     "rootDir": "./src",

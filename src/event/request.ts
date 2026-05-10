@@ -22,10 +22,11 @@ export function FriendRequest (event: Extract<Event, { event_type: 'friend_reque
   })
 }
 
-export function GroupJoinRequest (event: Extract<Event, { event_type: 'group_join_request' | 'group_invited_join_request' }>, bot: MilkyAdapter) {
+export async function GroupJoinRequest (event: Extract<Event, { event_type: 'group_join_request' | 'group_invited_join_request' }>, bot: MilkyAdapter) {
   const groupId = String(event.data.group_id)
   const contact = contactGroup(groupId)
   const userId = String(event.data.initiator_id)
+  const Info = await bot.getStrangerInfo(userId)
 
   createGroupApplyRequest({
     bot,
@@ -34,7 +35,7 @@ export function GroupJoinRequest (event: Extract<Event, { event_type: 'group_joi
     rawEvent: event,
     subEvent: 'groupInvite',
     eventId: `request:${event.time}`,
-    sender: senderGroup(userId),
+    sender: senderGroup(userId, 'unknown', Info.nick, Info.sex, Info.age, Info.remark, Info.level + '', 0, undefined),
     srcReply: (elements) => bot.sendMsg(contact, elements),
     content: {
       applierId: userId,

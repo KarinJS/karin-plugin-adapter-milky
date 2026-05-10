@@ -428,8 +428,18 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   // async getAtAllCount (_groupId: string): Promise<GetAtAllCountResponse> {
   // }
 
-  // async getStrangerInfo (_targetId: string): Promise<UserInfo> {
-  // }
+  async getStrangerInfo (_targetId: string): Promise<UserInfo> {
+    const res = await this.super.getUserProfile(+_targetId)
+    return {
+      userId: _targetId,
+      nick: res.nickname,
+      qid: res.qid,
+      remark: res.remark,
+      level: res.level,
+      age: res.age,
+      sex: res.sex
+    }
+  }
 
   async getFriendList (_refresh?: boolean): Promise<Array<UserInfo>> {
     const res = (await this.super.getFriendList(_refresh)).friends
