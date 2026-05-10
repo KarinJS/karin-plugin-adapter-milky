@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.5](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.4...v1.2.5) (2026-05-10)
+
+
+### Bug Fixes
+
+* 申请加入群里添加leve ([6292f18](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/6292f18409cb51468df57d9863d2b3734ca25b25))
+
 ## [1.2.4](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.3...v1.2.4) (2026-04-11)
 
 
