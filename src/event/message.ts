@@ -5,7 +5,7 @@ import { contactFriend, contactGroup, contactGroupTemp, createFriendMessage, cre
 
 export async function createMessage (event: Extract<Event, { event_type: 'message_receive' }>, bot: MilkyAdapter) {
   const data = event.data
-  const messageId = bot.super.encodeMsgId(data.message_scene, data.sender_id, data.message_seq)
+  const messageId = bot.super.encodeMsgId(data.message_scene, data.peer_id, data.message_seq)
   const elements = await AdapterConvertKarin(event.data, bot)
   if (data.message_scene === 'group') {
     const contact = contactGroup(data.peer_id + '', data.group.group_name)

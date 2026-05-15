@@ -39,14 +39,19 @@ export async function AdapterConvertKarin (event: IncomingMessage, bot: MilkyAda
         elements.push(segment.file(url, { fid: i.data.file_id, name: i.data.file_name, size: i.data.file_size, hash: i.data.file_hash || undefined }))
         break
       }
-      // case 'forward':
-      // elements.push(segment.nodeDirect(i.data.forward_id))
-      // break
+      case 'forward': {
+        const parts: string[] = []
+        if ('title' in i.data && i.data.title) parts.push(String(i.data.title))
+        if ('summary' in i.data && i.data.summary) parts.push(String(i.data.summary))
+        parts.push(`forward_id=${i.data.forward_id}`)
+        elements.push(segment.text(`[合并转发 ${parts.join(' / ')}]`))
+        break
+      }
       case 'market_face':
         elements.push(segment.marketFace(i.data.emoji_package_id + ''))
         break
       case 'light_app':
-        elements.push(segment.json(JSON.stringify(i)))
+        elements.push(segment.json(i.data.json_payload))
         break
       case 'xml':
         elements.push(segment.xml(i.data.xml_payload))

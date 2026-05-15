@@ -12,7 +12,7 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const accessToken = req.headers.authorization
   if (!accessToken || accessToken !== `Bearer ${token}`) {
     logger.debug('未授权的客户端请求:', req.body)
-    return res.status(404).json({ error: '无权限', message: '鉴权密钥错误' })
+    return res.status(401).json({ error: '无权限', message: '鉴权密钥错误' })
   }
   return next()
 }

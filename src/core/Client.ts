@@ -392,7 +392,7 @@ export class Client {
    * @returns
    */
   async setGroupMemberAdmin (groupId: number, userId: number, isSet: boolean = true) {
-    return await this.request('/set_group_member_admin', { group_id: +groupId, user_id: +userId, isSet })
+    return await this.request('/set_group_member_admin', { group_id: +groupId, user_id: +userId, is_set: isSet })
   }
 
   /**
@@ -596,7 +596,7 @@ export class Client {
    * @param fileHash 文件的 TriSHA1 哈希值
    * @returns
    */
-  async getPrivateFileDownloadUrl (userId: string, fileId: string, fileHash: string) {
+  async getPrivateFileDownloadUrl (userId: number, fileId: string, fileHash: string) {
     return await this.request<GetPrivateFileDownloadUrlOutput>('/get_private_file_download_url', { user_id: +userId, file_id: fileId, file_hash: fileHash })
   }
 
