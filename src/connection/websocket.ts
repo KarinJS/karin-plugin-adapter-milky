@@ -15,6 +15,8 @@ export class WebSocketHandle {
   #IntervalTime: NodeJS.Timeout | null = null
   /** 重连计时器 */
   #reconnectTimer: NodeJS.Timeout | null = null
+  /** 心跳计时器 */
+  #heartbeatTimer: NodeJS.Timeout | null = null
   constructor (bot: MilkyAdapter) {
     this.bot = bot
   }
@@ -34,6 +36,12 @@ export class WebSocketHandle {
         const time = Date.now()
         this.bot.adapter.connectTime = time - this.#startTime
       }, 1000)
+      if (this.#heartbeatTimer) clearInterval(this.#heartbeatTimer)
+      this.#heartbeatTimer = setInterval(() => {
+        if (this.#wss?.readyState === WebSocket.OPEN) {
+          try { this.#wss.ping() } catch { /* 静默 */ }
+        }
+      }, 30000)
       this.bot.__registerBot()
     })
 
@@ -87,6 +95,10 @@ export class WebSocketHandle {
     if (this.#IntervalTime) {
       clearInterval(this.#IntervalTime)
       this.#IntervalTime = null
+    }
+    if (this.#heartbeatTimer) {
+      clearInterval(this.#heartbeatTimer)
+      this.#heartbeatTimer = null
     }
     const ws = this.#wss
     if (ws) {

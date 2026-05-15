@@ -14,7 +14,6 @@ class Handler {
   register (bot: MilkyAdapter) {
     const selfId = bot.account.selfId
     if (!selfId) throw new Error('uin获取失败')
-    if (this.#ClientMap.has(selfId)) throw new Error(`Client [${selfId}] 已注册`)
     this.#ClientMap.set(selfId, bot)
     bot.__registerBot()
   }
@@ -31,7 +30,7 @@ class Handler {
       })
     }
     EventDispatch(data, bot)
-    return res.send('Hello World!')
+    return res.status(204).end()
   }
 
   /** 清理内容 */

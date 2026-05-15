@@ -53,7 +53,10 @@ export class SSEClient {
       this.bot.__registerBot()
     }
     this.#client.onerror = (err) => {
-      this.bot.logger('error', `[SSE]连接错误: ${JSON.stringify(err)}`)
+      this.bot.logger('debug', `[SSE]连接错误: ${JSON.stringify(err)}`)
+      // EventSource 库在 readyState=CONNECTING 时会自身重试；只在彻底关闭后才接管，避免重连风暴
+      if (this.#client?.readyState !== 2 /* CLOSED */) return
+      this.bot.logger('error', '[SSE]连接已彻底关闭，转交适配器重连')
       const index = this.bot.adapter.index
       if (index) {
         const bot = karin.getBot(index)
