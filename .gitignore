@@ -8,3 +8,4 @@ development.env
 lib/
 dist/
 *.tsbuildinfo
+/.claude
