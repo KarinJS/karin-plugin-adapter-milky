@@ -15,6 +15,33 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   cfg: BotCfg
   clear = null
   transport: WebSocketHandle | SSEClient | WebHook | null = null
+  /** 邀请自身入群事件的内存缓存：invitation_seq -> group_id（accept_group_invitation 必需的 group_id） */
+  #invitationCache = new Map<number, number>()
+
+  stashInvitation (invitationSeq: number, groupId: number) {
+    this.#invitationCache.set(invitationSeq, groupId)
+  }
+
+  popInvitation (invitationSeq: number): number | undefined {
+    const v = this.#invitationCache.get(invitationSeq)
+    if (v !== undefined) this.#invitationCache.delete(invitationSeq)
+    return v
+  }
+
+  /** 分页扫描群通知列表，定位指定 notification_seq 的通知（同时检查过滤/未过滤两条流） */
+  async findGroupNotification (seq: number) {
+    for (const isFiltered of [false, true]) {
+      let next: number | undefined
+      for (let i = 0; i < 50; i++) {
+        const res = await this.super.getGroupNotifications(next, isFiltered, 20)
+        const found = res.notifications.find(v => v.notification_seq === seq)
+        if (found) return { req: found, isFiltered }
+        if (!res.next_notification_seq || res.notifications.length === 0) break
+        next = res.next_notification_seq
+      }
+    }
+    return null
+  }
   constructor (cfg: BotCfg) {
     super()
     this.cfg = cfg
@@ -255,20 +282,59 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     return elements
   }
 
-  // async getForwardMsg (_resId: string): Promise<Array<MessageResponse>> {
-  //   const info = await this.super.getForwardedMessage(_resId)
-  //   return info.messages.map(v => ({
-  //     time: v.time,
-  //   }))
-  // }
-
-  // async createResId (_contact: Contact, _elements: Array<NodeElement>): Promise<string> {
-  // }
+  async getForwardMsg (_resId: string): Promise<Array<MessageResponse>> {
+    const info = await this.super.getForwardedMessage(_resId)
+    const result: MessageResponse[] = []
+    for (const v of info.messages) {
+      const messageSeq = v.message_seq ?? 0
+      /**
+       * 转发消息本身没有 peer_id / sender_id，这里合成一个 IncomingMessage 形态
+       * 以复用 AdapterConvertKarin 的段转换逻辑；group 等上下文留空。
+       */
+      const synthetic = {
+        message_scene: 'group' as const,
+        peer_id: 0,
+        message_seq: messageSeq,
+        sender_id: 0,
+        time: v.time,
+        segments: v.segments,
+        group: { group_id: 0, group_name: '', member_count: 0, max_member_count: 0 } as any,
+        group_member: {
+          user_id: 0,
+          nickname: v.sender_name,
+          sex: 'unknown',
+          card: '',
+          title: '',
+          level: 0,
+          role: 'member',
+          join_time: 0,
+          last_sent_time: 0,
+          group_id: 0
+        } as any
+      }
+      result.push({
+        time: v.time,
+        messageId: messageSeq ? this.super.encodeMsgId('group', 0, messageSeq) : '',
+        messageSeq,
+        contact: contactGroup('0', ''),
+        sender: {
+          userId: '0',
+          nick: v.sender_name,
+          name: v.sender_name,
+          role: 'member'
+        },
+        elements: await AdapterConvertKarin(synthetic as any, this)
+      })
+    }
+    return result
+  }
 
   async setMsgReaction (contact: Contact, messageId: string, faceId: number | string, isSet: boolean): Promise<void> {
     if (contact.scene !== 'group') throw new Error('仅支持群聊设置表情回应')
     const seq = this.super.decodeMsgId(messageId).seq
-    await this.super.setGroupMessageReaction(+contact.peer, seq, String(faceId), 'face', isSet)
+    const reaction = String(faceId)
+    const reactionType: 'face' | 'emoji' = /^\d+$/.test(reaction) ? 'face' : 'emoji'
+    await this.super.setGroupMessageReaction(+contact.peer, seq, reaction, reactionType, isSet)
   }
 
   async groupKickMember (_groupId: string, _targetId: string, _rejectAddRequest?: boolean, _kickReason?: string): Promise<void> {
@@ -305,21 +371,23 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     await this.super.setGroupMemberSpecialTitle(+_groupId, +_targetId, _title)
   }
 
-  // async setGroupRemark (_groupId: string, _remark: string): Promise<boolean> {
-  // }
-
-  // async getGroupMuteList (_groupId: string): Promise<Array<GetGroupMuteListResponse>> {
-
-  // }
-
   async getGroupInfo (_groupId: string, _noCache?: boolean): Promise<GroupInfo> {
     const res = await this.super.getGroupInfo(+_groupId, _noCache)
+    let admins: GroupInfo['admins'] = []
+    try {
+      const memberList = (await this.super.getGroupMemberList(+_groupId, _noCache)).members
+      admins = memberList
+        .filter(m => m.role === 'admin' || m.role === 'owner')
+        .map(m => ({ userId: m.user_id + '', name: m.card || m.nickname, role: m.role }))
+    } catch {
+      // 群成员列表获取失败时忽略 admin 推导
+    }
     return {
       groupId: res.group.group_id + '',
       groupName: res.group.group_name,
       maxMemberCount: res.group.max_member_count,
       memberCount: res.group.member_count,
-      admins: [],
+      admins,
       avatar: await this.getGroupAvatarUrl(_groupId, 640 as any)
     }
   }
@@ -395,9 +463,6 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     return info
   }
 
-  // async getGroupHonor (_groupId: string): Promise<Array<QQGroupHonorInfo>> {
-  // }
-
   async getGroupHighlights (_groupId: string, _page: number, _pageSize: number): Promise<Array<GetGroupHighlightsResponse>> {
     const res = (await this.super.getGroupEssenceMessages(+_groupId, _page, _pageSize)).messages
     const list: GetGroupHighlightsResponse[] = []
@@ -421,12 +486,6 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   async setGroupHighlights (_groupId: string, _messageId: string, _create: boolean): Promise<void> {
     await this.super.setGroupEssenceMessage(+_groupId, this.super.decodeMsgId(_messageId).seq, _create)
   }
-
-  // async getNotJoinedGroupInfo (_groupId: string): Promise<GroupInfo> {
-  // }
-
-  // async getAtAllCount (_groupId: string): Promise<GetAtAllCountResponse> {
-  // }
 
   async getStrangerInfo (_targetId: string): Promise<UserInfo> {
     const res = await this.super.getUserProfile(+_targetId)
@@ -481,51 +540,58 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
 
   async setFriendApplyResult (_requestId: string, _isApprove: boolean, _remark?: string): Promise<void> {
     let res = (await this.super.getFriendRequests()).requests
-    let req = res.find(v => v.initiator_id === +_requestId)
+    let req = res.find(v => v.initiator_uid === _requestId && v.state === 'pending')
     if (!req) {
       res = (await this.super.getFriendRequests(20, true)).requests
-      req = res.find(v => v.initiator_id === +_requestId)
+      req = res.find(v => v.initiator_uid === _requestId && v.state === 'pending')
       if (!req) return
     }
-    _isApprove
-      ? this.super.acceptFriendRequest(req.initiator_uid, req.is_filtered)
-      : this.super.rejectFriendRequest(req.initiator_uid, req.is_filtered)
+    if (_isApprove) {
+      await this.super.acceptFriendRequest(req.initiator_uid, req.is_filtered)
+    } else {
+      await this.super.rejectFriendRequest(req.initiator_uid, req.is_filtered, _remark)
+    }
   }
 
   async setGroupApplyResult (_requestId: string, _isApprove: boolean, _denyReason?: string): Promise<void> {
-    let res = (await this.super.getGroupNotifications(+_requestId)).notifications
-    let req = res.find(v => v.notification_seq === +_requestId)
-    if (!req) {
-      res = (await this.super.getGroupNotifications(+_requestId, true)).notifications
-      req = res.find(v => v.notification_seq === +_requestId)
-      if (req && req.type === 'join_request' && req.state === 'pending') {
-        _isApprove
-          ? await this.super.acceptGroupRequest(+_requestId, 'join_request', req.group_id, req.is_filtered)
-          : await this.super.rejectGroupRequest(+_requestId, 'join_request', req.group_id, req.is_filtered, _denyReason)
-      }
+    const seq = +_requestId
+    const found = await this.findGroupNotification(seq)
+    if (!found) {
+      this.logger('warn', `setGroupApplyResult: 未在通知列表中找到 seq=${seq}`)
+      return
+    }
+    const { req, isFiltered } = found
+    if (req.type !== 'join_request' && req.type !== 'invited_join_request') return
+    if (req.state !== 'pending') return
+    if (_isApprove) {
+      await this.super.acceptGroupRequest(seq, req.type, req.group_id, isFiltered)
+    } else {
+      await this.super.rejectGroupRequest(seq, req.type, req.group_id, isFiltered, _denyReason)
     }
   }
 
   async setInvitedJoinGroupResult (_requestId: string, _isApprove: boolean): Promise<void> {
-    let res = (await this.super.getGroupNotifications(+_requestId)).notifications
-    let req = res.find(v => v.notification_seq === +_requestId)
-    if (!req) {
-      res = (await this.super.getGroupNotifications(+_requestId, true)).notifications
-      req = res.find(v => v.notification_seq === +_requestId)
-
-      if (!req) return
-      if (req.type === 'invited_join_request' && req.state === 'pending') {
-        if (req.target_user_id === +this.selfId) {
-          _isApprove
-            ? await this.super.acceptGroupInvitation(req.group_id, +_requestId)
-            : await this.super.rejectGroupInvitation(req.group_id, +_requestId)
-        } else {
-          _isApprove
-            ? await this.super.acceptGroupRequest(+_requestId, 'invited_join_request', req.group_id)
-            : await this.super.rejectGroupRequest(+_requestId, 'invited_join_request', req.group_id)
-        }
+    const seq = +_requestId
+    const groupId = this.popInvitation(seq)
+    if (groupId !== undefined) {
+      if (_isApprove) {
+        await this.super.acceptGroupInvitation(groupId, seq)
+      } else {
+        await this.super.rejectGroupInvitation(groupId, seq)
       }
+      return
     }
+    const found = await this.findGroupNotification(seq)
+    if (found && found.req.type === 'invited_join_request' && found.req.state === 'pending') {
+      const { req, isFiltered } = found
+      if (_isApprove) {
+        await this.super.acceptGroupRequest(seq, 'invited_join_request', req.group_id, isFiltered)
+      } else {
+        await this.super.rejectGroupRequest(seq, 'invited_join_request', req.group_id, isFiltered)
+      }
+      return
+    }
+    this.logger('warn', `setInvitedJoinGroupResult: 找不到邀请 seq=${seq}（adapter 内存与通知列表均无匹配）`)
   }
 
   async getCookies (_domain: string): Promise<{ cookie: string }> {
@@ -541,6 +607,11 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
 
   async getCSRFToken (): Promise<{ token: number }> {
     const res = await this.super.getCSRFToken()
-    return { token: +res.csrf_token }
+    const token = Number(res.csrf_token)
+    if (!Number.isFinite(token)) {
+      this.logger('warn', `getCSRFToken: 协议端返回 "${res.csrf_token}" 无法转换为 number，使用 0 兜底`)
+      return { token: 0 }
+    }
+    return { token }
   }
 }

@@ -1,7 +1,7 @@
 import { MilkyAdapter } from '@/core/bot'
 import { Event } from '@saltify/milky-types'
 import { createMessage } from './message'
-import { FriendFileUpload, FriendPoke, GroupAdminChange, GroupFileUpload, GroupMemberDecrease, GroupMemberIncrease, GroupMessageReaction, GroupMute, GroupPoke, GroupWholeMute, RecallNotice } from './notice'
+import { BotOffline, FriendFileUpload, FriendPoke, GroupAdminChange, GroupEssenceMessageChange, GroupFileUpload, GroupMemberDecrease, GroupMemberIncrease, GroupMessageReaction, GroupMute, GroupNameChange, GroupPoke, GroupWholeMute, PeerPinChange, RecallNotice } from './notice'
 import { FriendRequest, GroupInvite, GroupJoinRequest } from './request'
 
 type HanderMap = {
@@ -24,6 +24,10 @@ Handlers['group_mute'] = GroupMute
 Handlers['group_whole_mute'] = GroupWholeMute
 Handlers['group_nudge'] = GroupPoke
 Handlers['group_file_upload'] = GroupFileUpload
+Handlers['bot_offline'] = BotOffline
+Handlers['peer_pin_change'] = PeerPinChange
+Handlers['group_essence_message_change'] = GroupEssenceMessageChange
+Handlers['group_name_change'] = GroupNameChange
 
 export async function EventDispatch (i: Event, bot: MilkyAdapter) {
   const handler = Handlers[i.event_type]

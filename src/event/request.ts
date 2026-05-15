@@ -17,7 +17,7 @@ export function FriendRequest (event: Extract<Event, { event_type: 'friend_reque
     content: {
       applierId: userId,
       message: event.data.comment,
-      flag: userId
+      flag: event.data.initiator_uid
     }
   })
 }
@@ -25,21 +25,25 @@ export function FriendRequest (event: Extract<Event, { event_type: 'friend_reque
 export async function GroupJoinRequest (event: Extract<Event, { event_type: 'group_join_request' | 'group_invited_join_request' }>, bot: MilkyAdapter) {
   const groupId = String(event.data.group_id)
   const contact = contactGroup(groupId)
-  const userId = String(event.data.initiator_id)
-  const Info = await bot.getStrangerInfo(userId)
+  const isInvited = event.event_type === 'group_invited_join_request'
+  const applierId = isInvited && 'target_user_id' in event.data
+    ? String(event.data.target_user_id)
+    : String(event.data.initiator_id)
+  const inviterId = isInvited ? String(event.data.initiator_id) : ''
+  const Info = await bot.getStrangerInfo(applierId)
 
   createGroupApplyRequest({
     bot,
     time: event.time,
     contact,
     rawEvent: event,
-    subEvent: 'groupInvite',
+    subEvent: 'groupApply',
     eventId: `request:${event.time}`,
-    sender: senderGroup(userId, 'unknown', Info.nick, Info.sex, Info.age, Info.remark, Info.level + '', 0, undefined),
+    sender: senderGroup(applierId, 'unknown', Info.nick, Info.sex, Info.age, Info.remark, Info.level + '', 0, undefined),
     srcReply: (elements) => bot.sendMsg(contact, elements),
     content: {
-      applierId: userId,
-      inviterId: 'target_user_id' in event.data ? String(event.data.target_user_id) : '',
+      applierId,
+      inviterId,
       reason: 'comment' in event.data ? event.data.comment : '',
       flag: event.data.notification_seq + '',
       groupId
@@ -49,6 +53,7 @@ export async function GroupJoinRequest (event: Extract<Event, { event_type: 'gro
 export function GroupInvite (event: Extract<Event, { event_type: 'group_invitation' }>, bot: MilkyAdapter) {
   const userId = event.data.initiator_id + ''
   const contact = contactGroup(event.data.group_id + '')
+  bot.stashInvitation(event.data.invitation_seq, event.data.group_id)
   createGroupInviteRequest({
     bot,
     time: event.time,

@@ -7,7 +7,7 @@ export function RecallNotice (event: Extract<Event, { event_type: 'message_recal
   const messageId = bot.super.encodeMsgId(data.message_scene, data.peer_id, data.message_seq)
   if (data.message_scene === 'friend') {
     const contact = contactFriend(data.peer_id + '')
-    const sender = senderFriend(data.operator_id + '')
+    const sender = senderFriend(data.peer_id + '')
     createPrivateRecallNotice({
       time: event.time,
       eventId: 'notice:' + event.time,
@@ -217,6 +217,23 @@ export function GroupPoke (event: Extract<Event, { event_type: 'group_nudge' }>,
       suffix: event.data.display_suffix
     }
   })
+}
+
+export function BotOffline (event: Extract<Event, { event_type: 'bot_offline' }>, bot: MilkyAdapter) {
+  bot.logger('warn', `[Bot离线] 原因: ${event.data.reason}`)
+  bot.__unregisterBot()
+}
+
+export function PeerPinChange (event: Extract<Event, { event_type: 'peer_pin_change' }>, bot: MilkyAdapter) {
+  bot.logger('debug', `[会话置顶变更] scene=${event.data.message_scene} peer=${event.data.peer_id} pinned=${event.data.is_pinned}`)
+}
+
+export function GroupEssenceMessageChange (event: Extract<Event, { event_type: 'group_essence_message_change' }>, bot: MilkyAdapter) {
+  bot.logger('debug', `[群精华消息变更] group=${event.data.group_id} seq=${event.data.message_seq} operator=${event.data.operator_id} isSet=${event.data.is_set}`)
+}
+
+export function GroupNameChange (event: Extract<Event, { event_type: 'group_name_change' }>, bot: MilkyAdapter) {
+  bot.logger('info', `[群名变更] group=${event.data.group_id} newName=${event.data.new_group_name} operator=${event.data.operator_id}`)
 }
 
 export function GroupFileUpload (event: Extract<Event, { event_type: 'group_file_upload' }>, bot: MilkyAdapter) {
