@@ -1,6 +1,6 @@
 import { BotCfg } from '@/config/types'
 import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, contactGroupTemp, ForwardOptions, GetGroupHighlightsResponse, GroupInfo, GroupMemberInfo, logger, MessageResponse, NodeElement, registerBot, SendElement, SendMsgResults, unregisterBot, UserInfo } from 'node-karin'
-import { Client } from '@/core/Client'
+import { Client } from '@/core/client'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
 import { dir } from '@/utils'
 import { WebSocketClient } from '@/transport/websocket'
@@ -8,6 +8,8 @@ import { SSEClient } from '@/transport/sse'
 import { segment } from '@/event/segment'
 import { webhookRegistry } from '@/transport/webhook'
 import { Cfg } from '@/config'
+import { InvitationCache } from '@/core/invitationCache'
+import { findGroupNotification } from '@/core/notificationLookup'
 
 /** 统一的 transport 接口：webhook / sse / websocket 三种连接形态共用 */
 interface Transport {
@@ -21,33 +23,9 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   cfg: BotCfg
   clear = null
   transport: Transport | null = null
-  /** 邀请自身入群事件的内存缓存：invitation_seq -> group_id（accept_group_invitation 必需的 group_id） */
-  #invitationCache = new Map<number, number>()
+  /** 邀请自身入群事件的 invitation_seq → group_id 缓存（GroupInvite 事件入；setInvitedJoinGroupResult 取） */
+  invitations = new InvitationCache()
 
-  stashInvitation (invitationSeq: number, groupId: number) {
-    this.#invitationCache.set(invitationSeq, groupId)
-  }
-
-  popInvitation (invitationSeq: number): number | undefined {
-    const v = this.#invitationCache.get(invitationSeq)
-    if (v !== undefined) this.#invitationCache.delete(invitationSeq)
-    return v
-  }
-
-  /** 分页扫描群通知列表，定位指定 notification_seq 的通知（同时检查过滤/未过滤两条流） */
-  async findGroupNotification (seq: number) {
-    for (const isFiltered of [false, true]) {
-      let next: number | undefined
-      for (let i = 0; i < 50; i++) {
-        const res = await this.super.getGroupNotifications(next, isFiltered, 20)
-        const found = res.notifications.find(v => v.notification_seq === seq)
-        if (found) return { req: found, isFiltered }
-        if (!res.next_notification_seq || res.notifications.length === 0) break
-        next = res.next_notification_seq
-      }
-    }
-    return null
-  }
   constructor (cfg: BotCfg) {
     super()
     this.cfg = cfg
@@ -563,7 +541,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
 
   async setGroupApplyResult (_requestId: string, _isApprove: boolean, _denyReason?: string): Promise<void> {
     const seq = +_requestId
-    const found = await this.findGroupNotification(seq)
+    const found = await findGroupNotification(this.super, seq)
     if (!found) {
       this.logger('warn', `setGroupApplyResult: 未在通知列表中找到 seq=${seq}`)
       return
@@ -580,7 +558,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
 
   async setInvitedJoinGroupResult (_requestId: string, _isApprove: boolean): Promise<void> {
     const seq = +_requestId
-    const groupId = this.popInvitation(seq)
+    const groupId = this.invitations.pop(seq)
     if (groupId !== undefined) {
       if (_isApprove) {
         await this.super.acceptGroupInvitation(groupId, seq)
@@ -589,7 +567,7 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
       }
       return
     }
-    const found = await this.findGroupNotification(seq)
+    const found = await findGroupNotification(this.super, seq)
     if (found && found.req.type === 'invited_join_request' && found.req.state === 'pending') {
       const { req, isFiltered } = found
       if (_isApprove) {

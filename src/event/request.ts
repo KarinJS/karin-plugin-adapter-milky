@@ -53,7 +53,7 @@ export async function GroupJoinRequest (event: Extract<Event, { event_type: 'gro
 export function GroupInvite (event: Extract<Event, { event_type: 'group_invitation' }>, bot: MilkyAdapter) {
   const userId = event.data.initiator_id + ''
   const contact = contactGroup(event.data.group_id + '')
-  bot.stashInvitation(event.data.invitation_seq, event.data.group_id)
+  bot.invitations.stash(event.data.invitation_seq, event.data.group_id)
   createGroupInviteRequest({
     bot,
     time: event.time,
