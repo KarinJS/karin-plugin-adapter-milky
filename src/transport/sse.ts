@@ -89,6 +89,10 @@ export class SSEClient {
   }
 
   clear () {
+    if (this.#reconnectTimer) {
+      clearTimeout(this.#reconnectTimer)
+      this.#reconnectTimer = null
+    }
     if (this.#IntervalTime) {
       clearInterval(this.#IntervalTime)
       this.#IntervalTime = null

@@ -127,15 +127,24 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     return this.account.name || ''
   }
 
-  /** 注册Bot,仅限适配器内部调用 */
+  /**
+   * 注册 Bot，仅限适配器内部调用。
+   * 幂等：若已有有效 index 则先卸载，避免重连/重入场景下产生孤儿 bot 实例。
+   */
   __registerBot () {
+    if (this.adapter.index && karin.getBotByIndex(this.adapter.index)) {
+      unregisterBot('index', this.adapter.index)
+      this.adapter.index = 0
+    }
     const index = registerBot(this.adapter.communication, this)
     if (index) this.adapter.index = index
   }
 
-  /** 卸载Bot,仅限适配器内部调用 */
+  /** 卸载 Bot，仅限适配器内部调用 */
   __unregisterBot () {
-    if (karin.getBotByIndex(this.adapter.index)) unregisterBot('index', this.adapter.index)
+    if (this.adapter.index && karin.getBotByIndex(this.adapter.index)) {
+      unregisterBot('index', this.adapter.index)
+    }
     this.adapter.index = 0
   }
 

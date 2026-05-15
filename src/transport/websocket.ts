@@ -22,7 +22,8 @@ export class WebSocketClient {
   }
 
   connect () {
-    if (this.#wss && this.#wss.readyState === WebSocket.OPEN) {
+    // 防重入：OPEN 或 CONNECTING 中都不重复建连，否则会覆盖 #wss 但旧 ws 的 open listener 仍会触发 __registerBot
+    if (this.#wss && (this.#wss.readyState === WebSocket.OPEN || this.#wss.readyState === WebSocket.CONNECTING)) {
       return
     }
     this.#wss = new WebSocket(this.bot.adapter.address, {
@@ -92,6 +93,10 @@ export class WebSocketClient {
   }
 
   clear () {
+    if (this.#reconnectTimer) {
+      clearTimeout(this.#reconnectTimer)
+      this.#reconnectTimer = null
+    }
     if (this.#IntervalTime) {
       clearInterval(this.#IntervalTime)
       this.#IntervalTime = null
