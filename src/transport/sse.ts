@@ -1,5 +1,5 @@
 import { Cfg } from '@/config'
-import { MilkyAdapter } from '@/core/bot'
+import { MilkyAdapter } from '@/core/milkyAdapter'
 import { EventDispatch } from '@/event'
 import { EventSource } from 'eventsource'
 import karin from 'node-karin'

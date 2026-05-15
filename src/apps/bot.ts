@@ -1,4 +1,4 @@
-import { Bot } from '@/core/BotManager'
+import { Bot } from '@/core/botManager'
 import karin from 'node-karin'
 
 export const Connect = karin.command(/^#milky上线(.*)?$/i, async (ctx) => {

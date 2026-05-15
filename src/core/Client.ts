@@ -31,7 +31,7 @@ import {
   UploadGroupFileOutput,
   UploadPrivateFileOutput
 } from '@saltify/milky-types'
-import { MilkyAdapter } from './bot'
+import { MilkyAdapter } from './milkyAdapter'
 
 type ApiResponse<T = unknown> =
   | {

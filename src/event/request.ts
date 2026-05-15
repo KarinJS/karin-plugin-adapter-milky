@@ -1,4 +1,4 @@
-import { MilkyAdapter } from '@/core/bot'
+import { MilkyAdapter } from '@/core/milkyAdapter'
 import { Event } from '@saltify/milky-types'
 import { contactFriend, contactGroup, createGroupApplyRequest, createGroupInviteRequest, createPrivateApplyRequest, senderFriend, senderGroup } from 'node-karin'
 

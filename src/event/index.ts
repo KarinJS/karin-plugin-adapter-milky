@@ -1,13 +1,13 @@
-import { MilkyAdapter } from '@/core/bot'
+import { MilkyAdapter } from '@/core/milkyAdapter'
 import { Event } from '@saltify/milky-types'
 import { createMessage } from './message'
 import { BotOffline, FriendFileUpload, FriendPoke, GroupAdminChange, GroupEssenceMessageChange, GroupFileUpload, GroupMemberDecrease, GroupMemberIncrease, GroupMessageReaction, GroupMute, GroupNameChange, GroupPoke, GroupWholeMute, PeerPinChange, RecallNotice } from './notice'
 import { FriendRequest, GroupInvite, GroupJoinRequest } from './request'
 
-type HanderMap = {
+type HandlerMap = {
   [K in Event['event_type']]: (event: Extract<Event, { event_type: K }>, bot: MilkyAdapter) => Promise<void> | void
 }
-const Handlers: HanderMap = Object.create(null)
+const Handlers: HandlerMap = Object.create(null)
 Handlers['message_receive'] = createMessage
 Handlers['message_recall'] = RecallNotice
 Handlers['friend_request'] = FriendRequest

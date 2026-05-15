@@ -1,6 +1,6 @@
-import '@/connection/webhook/webhook'
+import '@/transport/webhook'
 import { LoggerAdapter } from './utils'
-import { Bot } from './core/BotManager'
+import { Bot } from './core/botManager'
 import { Cfg } from './config'
 
 LoggerAdapter('info', '开始加载Bot~')

@@ -1,4 +1,4 @@
-import { MilkyAdapter } from '@/core/bot'
+import { MilkyAdapter } from '@/core/milkyAdapter'
 import { Event } from '@saltify/milky-types'
 import { contactFriend, contactGroup, createGroupAdminChangedNotice, createGroupFileUploadedNotice, createGroupMemberAddNotice, createGroupMemberBanNotice, createGroupMemberDelNotice, createGroupMessageReactionNotice, createGroupPokeNotice, createGroupRecallNotice, createGroupWholeBanNotice, createPrivateFileUploadedNotice, createPrivatePokeNotice, createPrivateRecallNotice, senderFriend, senderGroup } from 'node-karin'
 

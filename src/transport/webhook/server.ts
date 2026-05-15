@@ -1,6 +1,6 @@
 import { app, logger } from 'node-karin'
 import express, { NextFunction, Request, Response } from 'node-karin/express'
-import { WebHookHander } from './handler'
+import { webhookRegistry } from './registry'
 import { Cfg } from '@/config'
 import { dir, LoggerAdapter } from '@/utils'
 
@@ -18,7 +18,7 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
 }
 router.use(express.json())
 router.post('/webhook', authMiddleware, (req, res) => {
-  WebHookHander.handle(req, res)
+  webhookRegistry.handle(req, res)
 })
 router.get('/webhook', (_req, res) => res.json({
   name: 'Milky-adapter',

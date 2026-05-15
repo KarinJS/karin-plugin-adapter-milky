@@ -3,18 +3,24 @@ import karin, { AdapterBase, AdapterType, Contact, contactFriend, contactGroup, 
 import { Client } from '@/core/Client'
 import { AdapterConvertKarin, KarinConvertAdapter } from '@/event/convert'
 import { dir } from '@/utils'
-import { WebSocketHandle } from '@/connection/websocket'
-import { SSEClient } from '@/connection/ServerSentEvents'
+import { WebSocketClient } from '@/transport/websocket'
+import { SSEClient } from '@/transport/sse'
 import { segment } from '@/event/segment'
-import { WebHook } from '@/connection/WebHook'
+import { webhookRegistry } from '@/transport/webhook'
 import { Cfg } from '@/config'
+
+/** 统一的 transport 接口：webhook / sse / websocket 三种连接形态共用 */
+interface Transport {
+  connect (): Promise<void> | void
+  clear (): void
+}
 
 export class MilkyAdapter extends AdapterBase implements AdapterType {
   #inited = false
   super: Client
   cfg: BotCfg
   clear = null
-  transport: WebSocketHandle | SSEClient | WebHook | null = null
+  transport: Transport | null = null
   /** 邀请自身入群事件的内存缓存：invitation_seq -> group_id（accept_group_invitation 必需的 group_id） */
   #invitationCache = new Map<number, number>()
 
@@ -107,21 +113,23 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
     }
     const protocol = this.adapter.communication
     if (protocol === 'webhook') {
-      this.transport = new WebHook(this)
-    } else
-      if (protocol === 'sse') {
-        this.transport = new SSEClient(this)
-      } else
-        if (protocol === 'webSocketClient') {
-          const url = new URL(this.adapter.address)
-          if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
-            url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-          }
-          this.adapter.address = url.toString()
-          this.transport = new WebSocketHandle(this)
-        } else {
-          return this.logger('error', '未知的通讯方式' + protocol)
-        }
+      webhookRegistry.register(this)
+      this.transport = {
+        connect: () => {},
+        clear: () => webhookRegistry.clear(this.selfId)
+      }
+    } else if (protocol === 'sse') {
+      this.transport = new SSEClient(this)
+    } else if (protocol === 'webSocketClient') {
+      const url = new URL(this.adapter.address)
+      if (url.protocol !== 'ws:' && url.protocol !== 'wss:') {
+        url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      }
+      this.adapter.address = url.toString()
+      this.transport = new WebSocketClient(this)
+    } else {
+      return this.logger('error', '未知的通讯方式' + protocol)
+    }
     return this.transport.connect()
   }
 

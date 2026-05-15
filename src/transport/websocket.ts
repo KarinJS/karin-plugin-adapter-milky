@@ -1,10 +1,10 @@
 import { Cfg } from '@/config'
-import { MilkyAdapter } from '@/core/bot'
+import { MilkyAdapter } from '@/core/milkyAdapter'
 import { EventDispatch } from '@/event'
 import karin from 'node-karin'
 import WebSocket from 'ws'
 
-export class WebSocketHandle {
+export class WebSocketClient {
   #startTime = 0
   #wss: null | WebSocket = null
   /** 适配器实例 */

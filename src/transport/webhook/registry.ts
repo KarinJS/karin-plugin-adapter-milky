@@ -1,4 +1,4 @@
-import { MilkyAdapter } from '@/core/bot'
+import { MilkyAdapter } from '@/core/milkyAdapter'
 import { EventDispatch } from '@/event'
 import { Event } from '@saltify/milky-types'
 import { Request, Response } from 'node-karin/express'
@@ -38,4 +38,4 @@ class Handler {
     this.#ClientMap.delete(Id)
   }
 }
-export const WebHookHander = new Handler()
+export const webhookRegistry = new Handler()

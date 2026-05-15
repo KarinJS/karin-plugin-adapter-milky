@@ -4,7 +4,7 @@ import path from 'path'
 import { ConfigType } from './types'
 import { LoggerAdapter, RandomToken } from '@/utils/utils'
 import { dir } from '@/utils'
-import { Bot } from '@/core/BotManager'
+import { Bot } from '@/core/botManager'
 import _ from 'node-karin/lodash'
 
 class Config {

@@ -1,7 +1,7 @@
 import { IncomingMessage, OutgoingSegment } from '@saltify/milky-types'
 import { contactFriend, contactGroup, contactGroupTemp, Elements, segment, SendElement } from 'node-karin'
 import { segment as Segment } from '@/event/segment'
-import { MilkyAdapter } from '@/core/bot'
+import { MilkyAdapter } from '@/core/milkyAdapter'
 
 /** milky 消息转 Karin */
 export async function AdapterConvertKarin (event: IncomingMessage, bot: MilkyAdapter): Promise<Array<Elements>> {

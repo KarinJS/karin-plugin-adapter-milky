@@ -1,5 +1,5 @@
 import { BotCfg } from '@/config'
-import { MilkyAdapter } from './bot'
+import { MilkyAdapter } from './milkyAdapter'
 
 class BotManager {
   bots: Map<string, MilkyAdapter> = new Map()
