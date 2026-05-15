@@ -7,7 +7,11 @@ export const Connect = karin.command(/^#milky上线(.*)?$/i, async (ctx) => {
   if (!protocol || !address) return ctx.reply('格式错误,请使用#milky上线通讯协议,通讯地址\n例如:\n#milky上线websocket,http://127.0.0.1:7860')
   const key = Bot.getKey(protocol, address)
   const bot = Bot.getBot(key)
-  if (!bot) return ctx.reply('未找到对应的Bot')
-  bot.start()
-  return ctx.reply('已发送上线指令')
+  if (!bot) return ctx.reply('未找到对应的Bot，请先在配置文件中添加该 protocol/url')
+  try {
+    await bot.start()
+    return ctx.reply('已发送上线指令')
+  } catch (err: any) {
+    return ctx.reply(`上线失败: ${err.message ?? err}`)
+  }
 }, { perm: 'master' })

@@ -14,6 +14,8 @@ class BotManager {
 
   async addBot (cfg: BotCfg) {
     const key = this.getKey(cfg.protocol, cfg.url)
+    const existing = this.bots.get(key)
+    if (existing) existing.stop()
     const bot = new MilkyAdapter(cfg)
     this.bots.set(key, bot)
     await bot.start()
