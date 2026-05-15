@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.5...v1.3.0) (2026-05-15)
+
+
+### Features
+
+* 连接层增强（心跳、SSE 重连去重、webhook 204） ([01201a5](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/01201a505bd9451b2bb8803bc5caeb72c4d0427b))
+
+
+### Bug Fixes
+
+* 修复 ws/sse 重连导致重复注册 Bot ([25f491c](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/25f491c465857b231f3b4aa91aebda7259abd456))
+* 修正 milky 1.2 协议字段名与传输细节 ([4a5d752](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/4a5d752aecad219d700e482d524d1f31eee4559f))
+* 重写好友/群请求处理与同意拒绝逻辑 ([9aa1893](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/9aa1893ec20b8ed368c312e0d0cf044e65cfb57a))
+
 ## [1.2.5](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.4...v1.2.5) (2026-05-10)
 
 
