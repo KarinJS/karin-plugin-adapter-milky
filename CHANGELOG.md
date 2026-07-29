@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.3.0...v1.3.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* 修复群列表头像字段缺失，以及获取历史消息 ([f395953](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/f395953298931302d2f6038a4c3ee0ce47c485df))
+
 ## [1.3.0](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.2.5...v1.3.0) (2026-05-15)
 
 
