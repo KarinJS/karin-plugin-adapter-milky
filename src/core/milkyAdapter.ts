@@ -251,7 +251,23 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
   async getHistoryMsg (contact: Contact, startMsgSeq: string | number, count: number): Promise<MessageResponse[]> {
     const MsgId = typeof startMsgSeq === 'string' ? this.super.decodeMsgId(startMsgSeq).seq : startMsgSeq
     const scene = contact.scene === 'friend' ? 'friend' : contact.scene === 'group' ? 'group' : 'temp'
-    const result = (await this.super.getHistoryMessage(scene, +contact.peer, MsgId, count)).messages
+    /**
+     * milky 服务端的两个限制，在这里对齐 karin 的语义：
+     * 1. limit 上限 30，超出直接报错——按 30 一批循环拉取直到凑够 count 或没有更早消息
+     * 2. start_message_seq 是「结尾含锚点」语义，传 0 恒返回空——0/缺省时不传该参数，拉最新一页
+     */
+    const result: Awaited<ReturnType<Client['getHistoryMessage']>>['messages'] = []
+    let cursor = MsgId > 0 ? MsgId : undefined
+    while (result.length < count) {
+      const batch = Math.min(30, count - result.length)
+      const res = (await this.super.getHistoryMessage(scene, +contact.peer, cursor, batch)).messages
+      if (res.length === 0) break
+      // 每批按 seq 升序、以 cursor 结尾；往更早翻页时拼到前面
+      result.unshift(...res)
+      const oldest = res[0].message_seq
+      if (res.length < batch || oldest <= 1) break
+      cursor = oldest - 1
+    }
     const elements: MessageResponse[] = []
     for (const i of result) {
       const userId = String(i.sender_id)
@@ -396,7 +412,9 @@ export class MilkyAdapter extends AdapterBase implements AdapterType {
         groupName: i.group_name,
         maxMemberCount: i.max_member_count,
         memberCount: i.member_count,
-        admins: []
+        admins: [],
+        // qlogo 群头像（与 getGroupAvatarUrl 同规则，纯拼 URL 无网络开销）
+        avatar: `https://p.qlogo.cn/gh/${i.group_id}/${i.group_id}/0`
       })
     }
     return groups

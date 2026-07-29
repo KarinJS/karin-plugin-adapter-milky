@@ -63,6 +63,16 @@ export async function AdapterConvertKarin (event: IncomingMessage, bot: MilkyAda
   return elements
 }
 
+/**
+ * data: URL 统一转 `base64://` scheme。
+ * milky 的 uri 仅支持 file:// http(s):// base64:// 三种格式，
+ * 上游（如 Web 面板）常把本地媒体编成 data: URI，直传会被 milky 服务端拒绝（Unsupported URI scheme）
+ */
+const normalizeUri = (uri: string): string => {
+  const match = /^data:[^;,]*;base64,(.+)$/s.exec(uri)
+  return match ? `base64://${match[1]}` : uri
+}
+
 /** Karin 消息转 milky */
 export async function KarinConvertAdapter (data: Array<SendElement>): Promise<Array<OutgoingSegment>> {
   const elements: Array<OutgoingSegment> = []
@@ -81,13 +91,13 @@ export async function KarinConvertAdapter (data: Array<SendElement>): Promise<Ar
         elements.push(Segment.reply(i.messageId))
         break
       case 'image':
-        elements.push(Segment.image(i.file, { summary: i.summary, subType: i.subType as any }))
+        elements.push(Segment.image(normalizeUri(i.file), { summary: i.summary, subType: i.subType as any }))
         break
       case 'record':
-        elements.push(Segment.record(i.file))
+        elements.push(Segment.record(normalizeUri(i.file)))
         break
       case 'video':
-        elements.push(Segment.video(i.file))
+        elements.push(Segment.video(normalizeUri(i.file)))
         break
       default:
         elements.push(Segment.text(JSON.stringify(i)))
