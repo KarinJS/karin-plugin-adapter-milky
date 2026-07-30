@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.3](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.3.2...v1.3.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* 修复适配器对md消息不处理的问题 ([e8b36be](https://github.com/KarinJS/karin-plugin-adapter-milky/commit/e8b36bea42e4f6e5b09c04246997b7be836fda46))
+
 ## [1.3.2](https://github.com/KarinJS/karin-plugin-adapter-milky/compare/v1.3.1...v1.3.2) (2026-07-30)
 
 
