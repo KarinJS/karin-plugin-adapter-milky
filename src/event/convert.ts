@@ -56,6 +56,9 @@ export async function AdapterConvertKarin (event: IncomingMessage, bot: MilkyAda
       case 'xml':
         elements.push(segment.xml(i.data.xml_payload))
         break
+      case 'markdown' as any:
+        elements.push(segment.markdown((i.data as any).content))
+        break
       default:
         elements.push(segment.text(JSON.stringify(i)))
     }
@@ -65,8 +68,7 @@ export async function AdapterConvertKarin (event: IncomingMessage, bot: MilkyAda
 
 /**
  * data: URL 统一转 `base64://` scheme。
- * milky 的 uri 仅支持 file:// http(s):// base64:// 三种格式，
- * 上游（如 Web 面板）常把本地媒体编成 data: URI，直传会被 milky 服务端拒绝（Unsupported URI scheme）
+ * milky 的 uri 仅支持 file:// http(s):// base64:// 三种格式
  */
 const normalizeUri = (uri: string): string => {
   const match = /^data:[^;,]*;base64,(.+)$/s.exec(uri)

@@ -6,7 +6,8 @@
   "type": "module",
   "keywords": [
     "karin-plugin",
-    "karin-adapter"
+    "karin-adapter",
+    "milky"
   ],
   "description": "基于Karin的milky协议适配器",
   "homepage": "https://github.com/KarinJS/karin-plugin-adapter-milky",
